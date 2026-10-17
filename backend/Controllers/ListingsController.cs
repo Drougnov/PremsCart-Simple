@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PremsCart.Services;
 using PremsCart.Data;
 using PremsCart.Models;
 
@@ -10,10 +11,13 @@ namespace PremsCart.Controllers;
 public class ListingsController : BaseController
 {
     private readonly AppDbContext db;
+    private readonly CloudinaryImageService? images;
 
-    public ListingsController(AppDbContext db)
+    // The optional service preserves existing local developer checks.
+    public ListingsController(AppDbContext db, CloudinaryImageService? images = null)
     {
         this.db = db;
+        this.images = images;
     }
 
     public static readonly string[] Categories = ["Books", "Electronics", "Stationery", "Project parts", "Other"];
@@ -123,19 +127,39 @@ public class ListingsController : BaseController
         bool png = bytes.Length > 8 && bytes.Take(8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
         bool jpeg = bytes.Length > 3 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255;
         if (!png && !jpeg) return BadRequest(new { error = "Only PNG and JPEG images are supported." });
+        // In production, never save user uploads to Render's temporary disk.
+        // Cloudinary URLs persist across Render deploys/restarts.
+        if (images?.IsConfigured == true)
+        {
+            try
+            {
+                var cloudUrl = await images.UploadAsync(bytes, png, HttpContext?.RequestAborted ?? CancellationToken.None);
+                return Ok(new { imageUrl = cloudUrl });
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException
+                or System.Text.Json.JsonException or InvalidOperationException)
+            {
+                return StatusCode(502, new { error = "Image storage is unavailable. Please try again." });
+            }
+        }
+        if (images?.IsProduction == true)
+            return StatusCode(503, new { error = "Cloudinary storage is not configured. Contact an administrator." });
+
+        // Keep the original local workflow for offline development and existing checks.
         var name = Guid.NewGuid().ToString("N") + (png ? ".png" : ".jpg");
         Directory.CreateDirectory("wwwroot/uploads");
         await System.IO.File.WriteAllBytesAsync("wwwroot/uploads/" + name, bytes);
         return Ok(new { imageUrl = "/uploads/" + name });
     }
 
-    private static string? Validate(ListingRequest input)
+    private string? Validate(ListingRequest input)
     {
         if (input.Price != decimal.Truncate(input.Price)) return "Use whole taka only (for example, 1500).";
         if (!Categories.Contains(input.Category) || !Conditions.Contains(input.Condition)) return "Choose a valid category and condition.";
         if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Description)) return "Title and description are required.";
         if (!string.IsNullOrEmpty(input.ImageUrl) &&
-            !System.Text.RegularExpressions.Regex.IsMatch(input.ImageUrl, @"^(/uploads/(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg)|/images/(books|electronics|stationery|parts|other)\.(svg|jpg))$"))
+            !System.Text.RegularExpressions.Regex.IsMatch(input.ImageUrl, @"^(/uploads/(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg)|/images/(books|electronics|stationery|parts|other)\.(svg|jpg))$") &&
+            images?.IsAllowedImageUrl(input.ImageUrl) != true)
             return "Upload a valid product image.";
         return null;
     }

@@ -57,3 +57,7 @@ You can remove the InitialAdmin credentials from Render environment settings aft
 6. This package only contains deployment preparation. A full Docker build/deployment and live email integration were not run in the preparation environment.
 
 Official docs: https://render.com/docs/docker , https://render.com/docs/free , https://render.com/docs/postgresql-creating-connecting
+
+## Persistent product images on Render Free
+
+See [`CLOUDINARY_SETUP.md`](CLOUDINARY_SETUP.md) for the required code and environment variables.

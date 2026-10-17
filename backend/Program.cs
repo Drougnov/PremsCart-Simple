@@ -11,6 +11,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database")));
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddScoped<EmailService>();
+// HTTPS uploads to persistent Cloudinary storage (credentials from Render secrets).
+builder.Services.AddHttpClient<CloudinaryImageService>(client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
