@@ -1,0 +1,50 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> premscart-simple@1.0.0 test
+> node tests/run.mjs
+
+PASS: Product card routes to a working item detail screen
+PASS: Legacy item route remains usable
+PASS: Unknown route shows recovery link
+PASS: Guest protected page preserves destination after sign-in
+PASS: Marketplace category, search, sorting and clear filters
+PASS: Marketplace failure offers retry, not a misleading empty result
+PASS: My items has a prominent edit action without another sell CTA
+PASS: Failed product image displays a meaningful fallback
+PASS: New buyer offer uses whole-taka value and opens the trade
+PASS: Existing offer opens its conversation instead of creating a duplicate
+PASS: Fixed-price purchase has a read-only amount
+PASS: Owner and sold-item screens suppress buying
+PASS: Item reporting submits once and shows confirmation
+PASS: PNG upload is sent as multipart, then saved with its returned path
+PASS: Oversize photo is rejected before upload
+PASS: Editing someone else’s item is blocked in the UI
+PASS: Sign-in supports password visibility and keeps the email underscore
+PASS: Registration, resend and email verification flow
+PASS: Unavailable selected trade does not silently open another trade
+PASS: Trade history filter isolates finished trades
+PASS: Offer recipient can accept or submit an integer counteroffer
+PASS: Sender cannot accept their own pending offer
+PASS: Seller pickup sends the permitted location and UTC time
+PASS: Buyer cannot schedule pickup and early handover is disabled
+PASS: Elapsed handover requires an explicit confirmation
+PASS: Cancellation asks for confirmation; declined trades have no progress bar
+PASS: Completed trade publishes a review and suppresses an already published form
+PASS: Chat sends, trims, clears and displays the message
+PASS: Chat failure retains the draft for retry
+PASS: Profile displays reviews, rating and empty state
+PASS: Admin approval, visibility and report resolution call correct endpoints
+PASS: Admin user search and suspension confirmation protect against stray clicks
+PASS: Non-admin account cannot open the admin screen
+PASS: Action form prevents double submission while a save is pending
+PASS: Stale session error dispatches account-refresh event
+PASS: Decimal prices fail native form validity
+PASS: Saving is disabled while a photo upload is pending
+PASS: Owner edits preserve photo and submit to the existing item endpoint
+PASS: Pickup button unlocks when time arrives without refreshing the page
+PASS: Existing pickup plan is shown first and editing is an explicit action
+PASS: Failed trade loading is not presented as an empty trade history
+PASS: Sign-out clears member navigation and returns to marketplace
+PASS: Suspended member and hidden item can be restored by admin
+
+43 frontend interaction checks passed; 0 failed. Simulated API responses in jsdom, not browser or backend E2E.
