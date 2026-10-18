@@ -20,7 +20,7 @@ public class CommunityController : BaseController
     public async Task<IActionResult> Profile(int id)
     {
         var user = await db.Users.FindAsync(id);
-        if (user == null || user.IsSuspended) return NotFound();
+        if (user == null || user.IsSuspended || user.Role == "Admin") return NotFound();
         var reviews = await db.Reviews.Where(r => r.RevieweeId == id).OrderByDescending(r => r.CreatedAt)
             .Select(r => new { r.Rating, r.Comment, author = r.Reviewer.Name, r.CreatedAt }).ToListAsync();
         var completed = await db.Deals.CountAsync(d => d.Status == "Completed" && (d.BuyerId == id || d.Listing.SellerId == id));

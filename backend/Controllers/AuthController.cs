@@ -81,7 +81,7 @@ public class AuthController : BaseController
     public async Task<IActionResult> Verify(VerifyRequest input)
     {
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == input.Email.Trim().ToLowerInvariant());
-        if (user == null || user.IsVerified || user.VerificationExpires == null ||
+        if (user == null || user.IsSuspended || user.IsVerified || user.VerificationExpires == null ||
             user.VerificationExpires < DateTime.UtcNow || user.VerificationAttempts >= 5)
             return BadRequest(new { error = "Code expired or unavailable. Request a new code." });
         user.VerificationAttempts++;
@@ -94,7 +94,7 @@ public class AuthController : BaseController
         user.VerificationHash = null;
         user.VerificationExpires = null;
         await db.SaveChangesAsync();
-        return Ok(new { message = "Email verified. You can now sign in." });
+        return await SignIn(user);
     }
 
     [AllowAnonymous, HttpPost("login")]
@@ -120,6 +120,11 @@ public class AuthController : BaseController
         user.LoginAttempts = 0;
         user.LockedUntil = null;
         await db.SaveChangesAsync();
+        return await SignIn(user);
+    }
+
+    private async Task<IActionResult> SignIn(User user)
+    {
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, user.Role) };
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));

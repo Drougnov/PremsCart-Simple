@@ -15,5 +15,7 @@ public class Deal
     public DateTime? PickupTime { get; set; }
     public bool BuyerConfirmed { get; set; }
     public bool SellerConfirmed { get; set; }
+    public bool BuyerDeleted { get; set; }
+    public bool SellerDeleted { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

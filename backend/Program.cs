@@ -47,6 +47,11 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     // This is a NEW classroom database. Never point it at the old project's database.
     await db.Database.EnsureCreatedAsync();
+    // Additive upgrade for existing installations; preserve all transaction records.
+    await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "BuyerDeleted" boolean NOT NULL DEFAULT FALSE;
+        ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "SellerDeleted" boolean NOT NULL DEFAULT FALSE;
+        """);
     if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("SeedDemoData"))
         await SeedData.CreateAsync(db, scope.ServiceProvider.GetRequiredService<PasswordHasher<User>>());
     // Optionally create exactly one administrator on a fresh production deployment.

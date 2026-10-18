@@ -21,6 +21,17 @@ public static class SessionGuard
             });
             return;
         }
+        var path = context.Request.Path;
+        if (context.User.IsInRole("Admin") &&
+            (path.StartsWithSegments("/api/deals") ||
+             path.StartsWithSegments("/api/community") ||
+             (path.StartsWithSegments("/api/listings") &&
+              (context.Request.Method != "GET" || context.Request.Query["mine"] == "true"))))
+        {
+            context.Response.StatusCode = 403;
+            await context.Response.WriteAsJsonAsync(new { error = "Administrators use the administration workspace only." });
+            return;
+        }
         await next(context);
     }
 }

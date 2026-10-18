@@ -18,7 +18,7 @@ public class DealsController : BaseController
 
     [HttpGet]
     public async Task<IActionResult> List() => Ok(await db.Deals
-        .Where(d => d.BuyerId == CurrentUserId || d.Listing.SellerId == CurrentUserId)
+        .Where(d => (d.BuyerId == CurrentUserId && !d.BuyerDeleted) || (d.Listing.SellerId == CurrentUserId && !d.SellerDeleted))
         .OrderByDescending(d => d.CreatedAt)
         .Select(d => new
         {
@@ -122,7 +122,7 @@ public class DealsController : BaseController
                 if (!seller)
                     return BadRequest(new { error = $"You are signed in as the buyer. Only {deal.Listing.Seller.Name}, the seller, can save this pickup plan. Use separate browser profiles for two accounts." });
                 if (deal.Status is not ("Accepted" or "Scheduled"))
-                    return BadRequest(new { error = "Accept the offer before arranging pickup. Refresh your trades to see the current status." });
+                    return BadRequest(new { error = "Accept the offer before arranging pickup. The current status updates automatically." });
                 if (deal.BuyerConfirmed || deal.SellerConfirmed)
                     return BadRequest(new { error = "Pickup cannot change after either person confirms handover." });
                 if (input.Location is not ("Main Gate" or "Library" or "Cafeteria") ||
@@ -133,8 +133,8 @@ public class DealsController : BaseController
                 deal.Status = "Scheduled";
                 break;
             case "complete":
-                if (deal.Status != "Scheduled" || deal.PickupTime > DateTime.UtcNow)
-                    return BadRequest(new { error = "Confirm handover after the pickup time." });
+                if (deal.Status != "Scheduled")
+                    return BadRequest(new { error = "Arrange pickup before confirming handover." });
                 if (seller) deal.SellerConfirmed = true;
                 else deal.BuyerConfirmed = true;
                 if (deal.BuyerConfirmed && deal.SellerConfirmed)
@@ -157,6 +157,22 @@ public class DealsController : BaseController
         return Ok(new { message = "Trade updated." });
     }
 
+    // Remove a finished conversation only for the requesting participant.
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var deal = await db.Deals.Include(d => d.Listing).SingleOrDefaultAsync(d => d.Id == id);
+        if (deal == null) return NotFound();
+        var seller = deal.Listing.SellerId == CurrentUserId;
+        if (!seller && deal.BuyerId != CurrentUserId) return Forbid();
+        if (deal.Status is not ("Completed" or "Cancelled" or "Rejected"))
+            return BadRequest(new { error = "Cancel or complete this trade before deleting its conversation." });
+        if (seller) deal.SellerDeleted = true;
+        else deal.BuyerDeleted = true;
+        await db.SaveChangesAsync();
+        return Ok(new { message = "Trade and chat removed from your view." });
+    }
+
     [HttpGet("{id:int}/messages")]
     public async Task<IActionResult> Messages(int id)
     {
@@ -176,5 +192,5 @@ public class DealsController : BaseController
     }
 
     private Task<bool> CanOpen(int id) => db.Deals.AnyAsync(d => d.Id == id &&
-        (d.BuyerId == CurrentUserId || d.Listing.SellerId == CurrentUserId));
+        ((d.BuyerId == CurrentUserId && !d.BuyerDeleted) || (d.Listing.SellerId == CurrentUserId && !d.SellerDeleted)));
 }
