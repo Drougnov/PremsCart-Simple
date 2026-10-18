@@ -56,5 +56,10 @@ PASS: Missing item photos use category icons instead of unrelated photos
 PASS: Same buyer and item share one trade with current status
 PASS: Cancel is prominent and replaces the decline action
 PASS: Admin account form updates name and requires matching new passwords
+PASS: Pagination displays 12 items, changes page and resets on filtering
+PASS: Multiline descriptions collapse even below the old character limit
+PASS: Students save personal information and remove a profile photo
+PASS: Marketplace cards omit the redundant Available badge
+PASS: Admin photo upload uses the account endpoint and saves the returned URL
 
-53 frontend interaction checks passed; 0 failed. Simulated API responses in jsdom, not browser or backend E2E.
+58 frontend interaction checks passed; 0 failed. Simulated API responses in jsdom, not browser or backend E2E.

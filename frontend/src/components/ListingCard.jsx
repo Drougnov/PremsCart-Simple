@@ -24,7 +24,6 @@ export default function ListingCard({ item, manage = false }) {
         <strong className="price">{money(item.price)}</strong>
         <div className="card-footer">
           <span>{item.sellerName}</span>
-          <Badge muted>{item.status}</Badge>
         </div>
         {manage && (
           <div className="row">

@@ -29,6 +29,7 @@ public class CommunityController : BaseController
             user.Id,
             user.Name,
             user.Department,
+            user.AvatarUrl,
             user.IsVerified,
             user.JoinedAt,
             completed,

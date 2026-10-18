@@ -90,7 +90,7 @@ Mailpit normally listens for SMTP on port `1025` and provides its inbox at **htt
 1. Register a new address ending in `@bscse.puc.ac.bd` in the app.
 2. Open the local Mailpit inbox.
 3. Copy the six-digit code from the message.
-4. Enter it on the verification screen, then sign in.
+4. Enter it on the verification screen. You are signed in automatically and taken to your profile.
 
 If registration says email could not be sent, the account has still been saved. Start Mailpit, choose **Need to verify your email?**, and resend. Wait one minute between code requests. Codes expire after ten minutes and allow five incorrect attempts.
 
@@ -150,7 +150,7 @@ These use temporary SQLite storage and call the real controllers. They do not re
 | Empty page or missing frontend | Run `npm ci` and `npm run build` inside `frontend`. |
 | New listing does not appear | Admin must approve it; check My listings. |
 | Cannot edit a listing | Resolve its pending offers first. Reserved/sold listings cannot be edited. |
-| Handover button is disabled | Wait until pickup time; the button unlocks automatically. Both people must confirm. Refresh trades to see the other person’s confirmation. |
+| Handover button is disabled | Arrange pickup first. Either person can then confirm physical handover before or after the planned time. Both must confirm; status updates automatically. |
 | No code email | Start Mailpit/configure SMTP, then resend from the verification screen. |
 | Sign-in temporarily blocked | Five wrong passwords lock the account for 15 minutes. |
 | Demo accounts missing | Seed only runs on an empty database with `SeedDemoData=true` in Development. Do not delete useful data to reseed. |

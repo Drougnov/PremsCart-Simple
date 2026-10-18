@@ -25,7 +25,7 @@ public class ListingsController : BaseController
 
     [AllowAnonymous, HttpGet]
     public async Task<IActionResult> Browse(string? search, string? category, string? condition,
-        decimal? maxPrice, string? sort, bool mine = false)
+        decimal? maxPrice, string? sort, bool mine = false, int? page = null, int pageSize = 12)
     {
         var query = db.Listings.Include(l => l.Seller).AsQueryable();
         if (mine)
@@ -40,8 +40,12 @@ public class ListingsController : BaseController
         if (!string.IsNullOrEmpty(category)) query = query.Where(l => l.Category == category);
         if (!string.IsNullOrEmpty(condition)) query = query.Where(l => l.Condition == condition);
         if (maxPrice != null) query = query.Where(l => l.Price <= maxPrice);
-        query = sort == "price" ? query.OrderBy(l => l.Price) : query.OrderByDescending(l => l.CreatedAt);
-        return Ok(await query.Select(l => new
+        query = sort == "price" ? query.OrderBy(l => l.Price).ThenBy(l => l.Id) : query.OrderByDescending(l => l.CreatedAt).ThenByDescending(l => l.Id);
+        var total = await query.CountAsync();
+        pageSize = Math.Clamp(pageSize, 1, 48);
+        var currentPage = Math.Clamp(page ?? 1, 1, Math.Max(1, (int)Math.Ceiling(total / (double)pageSize)));
+        if (page != null) query = query.Skip((currentPage - 1) * pageSize).Take(pageSize);
+        var items = await query.Select(l => new
         {
             l.Id,
             l.Title,
@@ -57,7 +61,8 @@ public class ListingsController : BaseController
             l.SellerId,
             sellerName = l.Seller.Name,
             l.CreatedAt
-        }).ToListAsync());
+        }).ToListAsync();
+        return page == null ? Ok(items) : Ok(new { items, total, page = currentPage, pageSize });
     }
 
     [AllowAnonymous, HttpGet("{id:int}")]
@@ -80,6 +85,7 @@ public class ListingsController : BaseController
             listing.Status,
             listing.SellerId,
             sellerName = listing.Seller.Name,
+            sellerAvatarUrl = listing.Seller.AvatarUrl,
             listing.Seller.Department,
             listing.Seller.IsVerified
         });

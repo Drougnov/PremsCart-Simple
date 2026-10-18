@@ -2,29 +2,80 @@ import { useState } from "react";
 import { api } from "../api";
 import { ActionForm, Notice, PageTitle } from "../components/UI";
 export default function AdminAccount({ user, onUpdate }) {
+  const [avatar, setAvatar] = useState(user.avatarUrl || "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [saved, setSaved] = useState("");
   return (
     <section className="admin-account">
-      <PageTitle eyebrow="ADMINISTRATION" title="Account settings">
-        Manage your administrator name and password.
+      <PageTitle
+        eyebrow={user.role === "Admin" ? "ADMINISTRATION" : "YOUR ACCOUNT"}
+        title={user.role === "Admin" ? "Account settings" : "Edit profile"}
+      >
+        Update your photo, personal information, and password.
       </PageTitle>
       <Notice success>{saved}</Notice>
       <div className="panel">
+        <h2>Personal information</h2>
+        <span className="avatar large">
+          {avatar ? <img src={avatar} alt="Profile preview" /> : user.name[0]}
+        </span>
+        <label>
+          Profile photo
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            disabled={uploading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setUploadError("");
+              if (file.size > 2000000) {
+                setUploadError("Choose a photo smaller than 2 MB.");
+                return;
+              }
+              setUploading(true);
+              try {
+                const body = new FormData();
+                body.append("file", file);
+                const result = await api("/auth/photo", {
+                  method: "POST",
+                  body,
+                });
+                setAvatar(result.imageUrl);
+              } catch (e) {
+                setUploadError(e.message);
+              } finally {
+                setUploading(false);
+              }
+            }}
+          />
+        </label>
+        <small>
+          PNG or JPEG, up to 2 MB. Save your profile to apply the photo.
+        </small>
+        {avatar && (
+          <button
+            type="button"
+            className="text-button"
+            disabled={uploading}
+            onClick={() => setAvatar("")}
+          >
+            Remove photo
+          </button>
+        )}
+        <Notice>{uploadError}</Notice>
         <ActionForm
-          label="Save account changes"
-          onSubmit={async (values, form) => {
-            if (
-              values.newPassword &&
-              values.newPassword !== values.confirmPassword
-            )
-              throw new Error("New passwords do not match.");
-            const updated = await api("/auth/account", {
+          label={uploading ? "Uploading photo…" : "Save profile"}
+          onSubmit={async (values) => {
+            if (uploading)
+              throw new Error("Wait for your photo to finish uploading.");
+            const updated = await api("/auth/profile", {
               method: "PUT",
-              body: { ...values, newPassword: values.newPassword || null },
+              body: { ...values, avatarUrl: avatar },
             });
             onUpdate(updated);
-            form.reset();
-            setSaved("Account updated successfully.");
+            setSaved("Profile updated successfully.");
           }}
         >
           <label>
@@ -39,6 +90,45 @@ export default function AdminAccount({ user, onUpdate }) {
             />
           </label>
           <label>
+            Department
+            <input
+              name="department"
+              defaultValue={user.department}
+              required
+              maxLength={80}
+            />
+          </label>
+          <label>
+            Email
+            <input value={user.email} readOnly />
+          </label>
+          <small>Your verified email stays linked to this account.</small>
+        </ActionForm>
+      </div>
+      <div className="panel">
+        <h2>Change password</h2>
+        <ActionForm
+          label="Save account changes"
+          onSubmit={async (values, form) => {
+            if (
+              values.newPassword &&
+              values.newPassword !== values.confirmPassword
+            )
+              throw new Error("New passwords do not match.");
+            const updated = await api("/auth/account", {
+              method: "PUT",
+              body: {
+                ...values,
+                name: user.name,
+                newPassword: values.newPassword || null,
+              },
+            });
+            onUpdate(updated);
+            form.reset();
+            setSaved("Account updated successfully.");
+          }}
+        >
+          <label>
             Current password
             <input
               name="currentPassword"
@@ -48,9 +138,10 @@ export default function AdminAccount({ user, onUpdate }) {
             />
           </label>
           <label>
-            New password (optional)
+            New password
             <input
               name="newPassword"
+              required
               type="password"
               minLength={8}
               maxLength={100}
@@ -65,7 +156,7 @@ export default function AdminAccount({ user, onUpdate }) {
               autoComplete="new-password"
             />
           </label>
-          <small>Leave the new password blank to change only your name.</small>
+          <small>Changing your password signs out your other sessions.</small>
         </ActionForm>
       </div>
     </section>

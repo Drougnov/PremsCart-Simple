@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Badge, Empty, Icon, Loading, Notice } from "../components/UI";
 
-export default function Profile({ id }) {
+export default function Profile({ id, user }) {
   const refreshTick = useRefreshTick();
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
@@ -31,10 +31,21 @@ export default function Profile({ id }) {
         ← Back to marketplace
       </a>
       <section className="profile-header panel">
-        <span className="avatar large">{profile.name[0]}</span>
+        <span className="avatar large">
+          {profile.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="" />
+          ) : (
+            profile.name[0]
+          )}
+        </span>
         <span className="eyebrow">YOUR CAMPUS COMMUNITY</span>
         <h1>{profile.name}</h1>
         <p>{profile.department}</p>
+        {user?.id === profile.id && (
+          <a className="button secondary" href="#/account">
+            Edit profile
+          </a>
+        )}
         {profile.isVerified && <Badge>✓ University email verified</Badge>}
         <div className="profile-stats">
           <div>

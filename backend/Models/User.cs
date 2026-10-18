@@ -10,6 +10,7 @@ public class User
     [MaxLength(160)] public string Email { get; set; } = "";
     [MaxLength(80)] public string Department { get; set; } = "";
     [JsonIgnore] public string PasswordHash { get; set; } = "";
+    [MaxLength(1000)] public string AvatarUrl { get; set; } = "";
     public string Role { get; set; } = "Student";
     public bool IsVerified { get; set; }
     public bool IsSuspended { get; set; }

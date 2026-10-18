@@ -1,3 +1,5 @@
+> Latest release: read [LATEST_UPDATE.md](LATEST_UPDATE.md) for the admin, trades, catalog and deployment changes.
+
 # PremsCart — Simple campus edition
 
 A small, readable implementation of the **V1 proposal**, made for a university presentation.

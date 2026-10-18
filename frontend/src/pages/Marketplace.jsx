@@ -7,6 +7,9 @@ import { Empty, Icon, Loading, Notice, PageTitle } from "../components/UI";
 export default function Marketplace({ mine, user }) {
   const refreshTick = useRefreshTick();
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 12;
   const [filters, setFilters] = useState({
     search: "",
     category: "",
@@ -20,11 +23,13 @@ export default function Marketplace({ mine, user }) {
     let active = true;
     if (refreshTick === 0) setLoading(true);
     const timer = setTimeout(() => {
-      const query = new URLSearchParams({ ...filters, mine });
+      const query = new URLSearchParams({ ...filters, mine, page, pageSize });
       api(`/listings?${query}`)
         .then((data) => {
           if (active) {
-            setItems(data);
+            setItems(data.items ?? data);
+            setTotal(data.total ?? data.length);
+            if (data.page) setPage(data.page);
             setError("");
           }
         })
@@ -39,11 +44,14 @@ export default function Marketplace({ mine, user }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [filters, mine, refreshTick]);
-  const update = (name, value) =>
+  }, [filters, mine, refreshTick, page]);
+  const update = (name, value) => {
+    setPage(1);
     setFilters((old) => ({ ...old, [name]: value }));
+  };
   const hasFilters = Object.values(filters).some(Boolean);
-  const resetFilters = () =>
+  const resetFilters = () => {
+    setPage(1);
     setFilters({
       search: "",
       category: "",
@@ -51,6 +59,7 @@ export default function Marketplace({ mine, user }) {
       maxPrice: "",
       sort: "",
     });
+  };
   const categoryIcons = {
     "": "grid",
     Books: "book",
@@ -206,7 +215,7 @@ export default function Marketplace({ mine, user }) {
           </button>
         )}
         <span className="result-count" aria-live="polite">
-          {loading ? "Searching…" : `${items.length} items`}
+          {loading ? "Searching…" : `${total} items`}
         </span>
       </div>
       <Notice>{error}</Notice>
@@ -227,11 +236,42 @@ export default function Marketplace({ mine, user }) {
           Check your connection and try again.
         </Empty>
       ) : items.length ? (
-        <div className="listing-grid">
-          {items.map((item) => (
-            <ListingCard key={item.id} item={item} manage={mine} />
-          ))}
-        </div>
+        <>
+          <div className="listing-grid">
+            {items.map((item) => (
+              <ListingCard key={item.id} item={item} manage={mine} />
+            ))}
+          </div>
+          {total > pageSize && (
+            <nav className="pagination" aria-label="Item pages">
+              <button
+                className="button secondary"
+                disabled={page <= 1}
+                onClick={() => {
+                  setPage(page - 1);
+                  document.getElementById("campus-finds")?.scrollIntoView();
+                }}
+              >
+                Previous
+              </button>
+              <span aria-live="polite">
+                Page {page} of {Math.ceil(total / pageSize)} ·{" "}
+                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}{" "}
+                of {total} items
+              </span>
+              <button
+                className="button secondary"
+                disabled={page >= Math.ceil(total / pageSize)}
+                onClick={() => {
+                  setPage(page + 1);
+                  document.getElementById("campus-finds")?.scrollIntoView();
+                }}
+              >
+                Next
+              </button>
+            </nav>
+          )}
+        </>
       ) : (
         <Empty
           title={mine ? "Your first item starts here" : "No finds just yet"}

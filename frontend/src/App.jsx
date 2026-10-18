@@ -77,9 +77,14 @@ export default function App() {
     if (user?.role === "Admin" && !["/admin", "/admin/account"].includes(route))
       location.hash = "/admin";
   }, [user?.role, route]);
-  const protectedPage = ["sell", "edit", "mine", "trades", "admin"].includes(
-    page,
-  );
+  const protectedPage = [
+    "sell",
+    "edit",
+    "mine",
+    "trades",
+    "admin",
+    "account",
+  ].includes(page);
   let content;
   if (loading) content = <Loading label="Opening your campus marketplace…" />;
   else if (user?.role === "Admin")
@@ -105,7 +110,9 @@ export default function App() {
   else if (page === "sell" || page === "edit")
     content = <ListingForm id={page === "edit" ? id : null} user={user} />;
   else if (page === "trades") content = <Trades user={user} selectedId={id} />;
-  else if (page === "profile") content = <Profile id={id} />;
+  else if (page === "account")
+    content = <AdminAccount user={user} onUpdate={updateUser} />;
+  else if (page === "profile") content = <Profile id={id} user={user} />;
   else if (page === "admin")
     content =
       user.role === "Admin" ? (
@@ -192,7 +199,11 @@ export default function App() {
                       : `#/profile/${user.id}`
                   }
                 >
-                  {user.name[0]}
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" />
+                  ) : (
+                    user.name[0]
+                  )}
                 </a>
                 <span className="account-name">{user.name.split(" ")[0]}</span>
                 <button

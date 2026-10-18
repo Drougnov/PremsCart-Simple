@@ -50,6 +50,7 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     // Additive upgrade for existing installations; preserve all transaction records.
     await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AvatarUrl" character varying(1000) NOT NULL DEFAULT '';
         ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "SessionVersion" integer NOT NULL DEFAULT 0;
         ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "BuyerDeleted" boolean NOT NULL DEFAULT FALSE;
         ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "SellerDeleted" boolean NOT NULL DEFAULT FALSE;

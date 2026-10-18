@@ -10,7 +10,10 @@ public static class SessionGuard
         var expected = context.Request.Headers["X-PremsCart-User"].ToString();
         var actual = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (context.Request.Path.StartsWithSegments("/api") &&
-            !context.Request.Path.StartsWithSegments("/api/auth") &&
+            (!context.Request.Path.StartsWithSegments("/api/auth") ||
+             context.Request.Path.StartsWithSegments("/api/auth/profile") ||
+             context.Request.Path.StartsWithSegments("/api/auth/account") ||
+             context.Request.Path.StartsWithSegments("/api/auth/photo")) &&
             expected.Length > 0 && expected != actual)
         {
             context.Response.StatusCode = 409;

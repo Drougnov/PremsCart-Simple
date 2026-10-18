@@ -20,13 +20,15 @@ public class AuthController : BaseController
     private readonly PasswordHasher<User> hasher;
     private readonly EmailService emailService;
     private readonly IConfiguration configuration;
+    private readonly CloudinaryImageService? images;
 
-    public AuthController(AppDbContext db, PasswordHasher<User> hasher, EmailService emailService, IConfiguration configuration)
+    public AuthController(AppDbContext db, PasswordHasher<User> hasher, EmailService emailService, IConfiguration configuration, CloudinaryImageService? images = null)
     {
         this.db = db;
         this.hasher = hasher;
         this.emailService = emailService;
         this.configuration = configuration;
+        this.images = images;
     }
 
     [AllowAnonymous, HttpGet("settings")]
@@ -131,11 +133,11 @@ public class AuthController : BaseController
         return Ok(user);
     }
 
-    [Authorize(Roles = "Admin"), HttpPut("account")]
+    [HttpPut("account")]
     public async Task<IActionResult> UpdateAccount(AccountRequest input)
     {
         var user = await db.Users.FindAsync(CurrentUserId);
-        if (user == null || user.Role != "Admin") return Forbid();
+        if (user == null) return Forbid();
         if (user.LockedUntil > DateTime.UtcNow)
             return StatusCode(429, new { error = "Too many attempts. Try again in 15 minutes." });
         if (hasher.VerifyHashedPassword(user, user.PasswordHash, input.CurrentPassword) == PasswordVerificationResult.Failed)
@@ -159,6 +161,27 @@ public class AuthController : BaseController
         user.LockedUntil = null;
         await db.SaveChangesAsync();
         return await SignIn(user);
+    }
+
+    [HttpPost("photo"), RequestSizeLimit(3_000_000)]
+    public Task<IActionResult> UploadPhoto(IFormFile? file)
+        => new ListingsController(db, images) { ControllerContext = ControllerContext }.Upload(file);
+
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile(ProfileRequest input)
+    {
+        var user = await db.Users.FindAsync(CurrentUserId);
+        if (user == null) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length < 2 || string.IsNullOrWhiteSpace(input.Department))
+            return BadRequest(new { error = "Enter your name and department." });
+        var photo = input.AvatarUrl ?? "";
+        if (photo.Length > 0 && !System.Text.RegularExpressions.Regex.IsMatch(photo, @"^/uploads/[a-f0-9]{32}\.(png|jpg)$") && images?.IsAllowedImageUrl(photo) != true)
+            return BadRequest(new { error = "Upload a valid profile photo." });
+        user.Name = input.Name.Trim();
+        user.Department = input.Department.Trim();
+        user.AvatarUrl = photo;
+        await db.SaveChangesAsync();
+        return Ok(user);
     }
 
     [HttpGet("me")]

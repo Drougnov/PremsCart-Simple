@@ -1,3 +1,7 @@
+# Latest: pagination and profile editing
+
+Read PAGINATION_PROFILE_UPDATE.md first for the changes and exact Windows deployment steps. Latest validation: 58 frontend checks and 92 backend checks passed, with successful builds and publish.
+
 # Marketplace and trade update — 18 October 2026
 
 ## Deploy the complete update
@@ -11,14 +15,14 @@ The supplied screenshots show the old frontend (admin student links, Refresh tra
 
 ## Admin
 
-Admins see Administration and Account settings only. Account settings supports display name and optional new password, verified against the current password. Changing the password invalidates older sessions. Student trade/post/profile APIs remain blocked for admins. A SessionVersion column is added automatically without resetting users.
+Admins see Administration and Account settings only. Account settings supports name, department and profile photo. Password changes require the current password. Students have the same editing controls through Edit profile. Changing the password invalidates older sessions. Student trade/post/profile APIs remain blocked for admins. A SessionVersion column is added automatically without resetting users.
 
 ## Cards, photos and controls
 
 - Fixed 4:3 image region with contain-fit so product photos are not cropped. Two-line card titles and consistent price/footer placement.
 - Category icons for no-photo posts. New posts no longer receive unrelated stock desk images. Legacy default /images/other.jpg values are cleared to use placeholders.
 - Fixed-price purchases display a price and Fixed price tag instead of an amount input.
-- Item descriptions initially show up to 320 characters with See more / See less.
+- Item descriptions initially show up to 180 characters or four explicit lines with See more / See less.
 - Softer focus outlines, themed selects and supported native picker styling. Older browsers retain their platform popup but use themed closed controls.
 - Item status replaces redundant Campus text. Hero CTA says Explore the goods.
 

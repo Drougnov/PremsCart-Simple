@@ -94,11 +94,14 @@ export default function ListingDetail({ id, user }) {
           </p>
           <div className="description">
             <p>
-              {expanded || item.description.length <= 320
+              {expanded ||
+              (item.description.length <= 180 &&
+                item.description.split("\n").length <= 4)
                 ? item.description
-                : `${item.description.slice(0, 320).trimEnd()}…`}
+                : `${item.description.split("\n").slice(0, 4).join("\n").slice(0, 180).trimEnd()}…`}
             </p>
-            {item.description.length > 320 && (
+            {(item.description.length > 180 ||
+              item.description.split("\n").length > 4) && (
               <button
                 className="text-button"
                 aria-expanded={expanded}
@@ -109,7 +112,13 @@ export default function ListingDetail({ id, user }) {
             )}
           </div>
           <a className="seller-box" href={`#/profile/${item.sellerId}`}>
-            <span className="avatar">{item.sellerName[0]}</span>
+            <span className="avatar">
+              {item.sellerAvatarUrl ? (
+                <img src={item.sellerAvatarUrl} alt="" />
+              ) : (
+                item.sellerName[0]
+              )}
+            </span>
             <span>
               <strong>{item.sellerName}</strong>
               <small>{item.department}</small>
@@ -122,7 +131,12 @@ export default function ListingDetail({ id, user }) {
           </a>
           {user?.id === item.sellerId ? (
             <div className="notice success">
-              This is your item. <a href="#/mine">Manage your items</a>
+              This is your item.{" "}
+              {item.status === "Available" ? (
+                <a href={`#/edit/${item.id}`}>Edit your item</a>
+              ) : (
+                <span>Reserved or sold items cannot be edited.</span>
+              )}
             </div>
           ) : checkingDeal ? (
             <Loading label="Checking your offers…" />

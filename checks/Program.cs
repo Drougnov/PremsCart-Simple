@@ -284,7 +284,7 @@ Check(await auth.UpdateAccount(new("Updated Admin", "Campus123!", "NewPassword!1
 Check(admin.Name == "Updated Admin" && admin.SessionVersion == 1 && passwords.VerifyHashedPassword(admin, admin.PasswordHash, "NewPassword!123") != PasswordVerificationResult.Failed,
     "Password is hashed and prior session version is revoked");
 auth.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, buyer.Id.ToString()) }, "check"));
-Check(await auth.UpdateAccount(new("Student", "Campus123!", null, null)) is ForbidResult, "Student cannot use admin account settings");
+Check(await auth.UpdateAccount(new("Student", "Campus123!", null, null)) is OkObjectResult, "Students can manage their own account");
 await DemoCatalog.CreateAsync(db, passwords);
 var demo = await db.Users.SingleAsync(u => u.Email == DemoCatalog.Email);
 Check(demo.IsVerified && demo.Role == "Student" && passwords.VerifyHashedPassword(demo, demo.PasswordHash, DemoCatalog.Password) != PasswordVerificationResult.Failed,
@@ -295,4 +295,18 @@ Check(await db.Listings.CountAsync(l => l.SellerId == demo.Id) == 24, "Repeated 
 As(listings, seller);
 await listings.Create(new("Without photo", "A valid no-photo item description", "Books", "Good", 100, true, null));
 Check((await db.Listings.SingleAsync(l => l.Title == "Without photo")).ImageUrl == "", "No-photo posts retain an empty photo for category placeholder");
+
+Check(await auth.UpdateProfile(new("Student Profile", "CSE", "/uploads/" + new string('a',32) + ".jpg")) is OkObjectResult,
+    "Student saves name department and photo");
+Check(buyer.Name == "Student Profile" && buyer.Department == "CSE" && buyer.AvatarUrl.EndsWith(".jpg"), "Profile fields persist for current user");
+Check(await auth.UpdateProfile(new("Student Profile", "CSE", "https://untrusted.example/photo.jpg")) is BadRequestObjectResult, "Profile rejects untrusted photo URL");
+Check(await auth.UpdateProfile(new("Student Profile", "CSE", "")) is OkObjectResult && buyer.AvatarUrl == "", "Profile photo can be removed");
+As(auth, admin);
+Check(await auth.UpdateProfile(new("Admin Profile", "Administration", "")) is OkObjectResult, "Admin can edit personal information without a student profile");
+var pageResult = (OkObjectResult)await listings.Browse(null,null,null,null,null,false,1,12);
+var pageJson = System.Text.Json.JsonSerializer.SerializeToElement(pageResult.Value);
+Check(pageJson.GetProperty("items").GetArrayLength() == 12 && pageJson.GetProperty("total").GetInt32() >= 24, "Marketplace returns bounded page and full total");
+var lastResult = (OkObjectResult)await listings.Browse(null,null,null,null,null,false,999,12);
+var lastJson = System.Text.Json.JsonSerializer.SerializeToElement(lastResult.Value);
+Check(lastJson.GetProperty("page").GetInt32() < 999 && lastJson.GetProperty("items").GetArrayLength() > 0, "Out of range page clamps to last available page");
 Console.WriteLine($"\n{passed} controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.");

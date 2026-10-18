@@ -1,6 +1,6 @@
 # Update your existing simple project
 
-This release fixes the reported issues without changing the database schema. Keep your current `premscart_simple` database.
+This release preserves your current database. At startup it adds `BuyerDeleted` and `SellerDeleted` boolean columns to `Deals` if they do not exist. No tables or transaction records are removed. Keep your existing database connection and configuration.
 
 1. Stop the running backend and frontend.
 2. Keep a backup of your existing project folder. In particular, retain `backend/wwwroot/uploads` and any local configuration.
@@ -41,6 +41,17 @@ For a new installation, use `RUN_LOCALLY.md`. For test limitations, see `docs/TE
 
 ## Modern frontend refresh
 
-This update also redesigns every page and fixes item navigation, existing-offer actions, invalid trade selection, chat request ordering, and timed handover controls. **The backend C# code and database schema are unchanged from the previous corrected simple release.**
+This update also redesigns every page and fixes item navigation, existing-offer actions, invalid trade selection, chat request ordering, and handover controls. The current release also updates the backend and applies the two additive visibility columns described above.
 
 Read `docs/SCREEN_REVIEW.md` for the screen-by-screen changes. The download includes the compiled frontend; you do not need Node.js just to run it. Optional frontend development/tests require Node.js **22.22.2+ within version 22, 24.15.0+ within version 24, or 26+**, matching the installed test dependency's supported versions. Run `npm ci`, then `npm test` or `npm run dev` from `frontend`.
+
+## Verification, admin and trade update — 17 October 2026
+
+- Successful email verification creates the same secure session as login and opens the new student profile.
+- Admin sign-in opens Administration. Student navigation, student profile and trading/posting APIs are unavailable to admins.
+- On finished trades, **Delete trade and chat** removes the conversation from your own account view after confirmation. It does not erase the other participant’s record, published reviews or transaction history in the database. Cancel active trades first; partially confirmed handovers must be completed.
+- Confirm handover once pickup is arranged and the physical exchange has happened, even if the scheduled time is still in the future. Both people must confirm.
+- Visible marketplace, My items, item detail, profiles, administration and trades refresh every five seconds and on focus/reconnect/local changes. Chat polls every four seconds. Drafts and filters remain intact. No manual refresh is required during normal use.
+- **All trades** includes active and finished trades. **History (closed)** includes Completed, Cancelled and Rejected trades. Both remain because they differ.
+
+For Render: replace the project files in your repository and redeploy the existing service, keeping its environment variables and database. The Docker build rebuilds the frontend. The database account needs permission to add the two columns. Do not reset the database. No Render deployment was performed as part of this ZIP update.

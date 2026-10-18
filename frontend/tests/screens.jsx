@@ -1109,7 +1109,7 @@ await check(
     fireEvent.change(screen.getByLabelText("Current password"), {
       target: { value: "Campus123!" },
     });
-    fireEvent.change(screen.getByLabelText("New password (optional)"), {
+    fireEvent.change(screen.getByLabelText("New password"), {
       target: { value: "NewPassword!123" },
     });
     fireEvent.change(screen.getByLabelText("Confirm new password"), {
@@ -1126,6 +1126,124 @@ await check(
     assert.equal(updated.name, "Updated Admin");
     assert.ok(
       calls.some((c) => c.method === "PUT" && c.path === "/auth/account"),
+    );
+  },
+);
+
+await check(
+  "Pagination displays 12 items, changes page and resets on filtering",
+  async () => {
+    document.getElementById = document.getElementById.bind(document);
+    window.HTMLElement.prototype.scrollIntoView = () => {};
+    mock((c) => {
+      const page = Number(
+        new URLSearchParams(c.path.split("?")[1]).get("page"),
+      );
+      return {
+        items: Array.from({ length: 12 }, (_, i) => ({
+          ...item,
+          id: (page - 1) * 12 + i + 1,
+          title: `Item ${(page - 1) * 12 + i + 1}`,
+        })),
+        total: 25,
+        page,
+        pageSize: 12,
+      };
+    });
+    render(<Marketplace mine={false} user={buyer} />);
+    await screen.findByText("Item 1");
+    assert.equal(document.querySelectorAll(".listing-card").length, 12);
+    await click("Next");
+    await screen.findByText("Item 13");
+    assert.equal(screen.queryByText("Item 1"), null);
+    await click("Books");
+    await screen.findByText("Item 1");
+    assert.ok(screen.getByRole("button", { name: "Previous" }).disabled);
+  },
+);
+await check(
+  "Multiline descriptions collapse even below the old character limit",
+  async () => {
+    mock((c) =>
+      c.path === "/deals" ? [] : { ...item, description: "abc\n".repeat(60) },
+    );
+    render(<ListingDetail id="7" user={seller} />);
+    await screen.findByRole("button", { name: "See more" });
+    assert.ok(
+      document.querySelector(".description p").textContent.split("\n").length <=
+        4,
+    );
+    await click("See more");
+    assert.ok(
+      document.querySelector(".description p").textContent.split("\n").length >
+        40,
+    );
+    await click("See less");
+    assert.equal(
+      screen.getByRole("link", { name: "Edit your item" }).getAttribute("href"),
+      "#/edit/7",
+    );
+  },
+);
+await check(
+  "Students save personal information and remove a profile photo",
+  async () => {
+    let updated;
+    mock((c) => ({ ...buyer, ...c.body }));
+    render(
+      <AdminAccount
+        user={{ ...buyer, avatarUrl: "/uploads/photo.jpg" }}
+        onUpdate={(u) => (updated = u)}
+      />,
+    );
+    await click("Remove photo");
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "New Student Name" },
+    });
+    fireEvent.change(screen.getByLabelText("Department"), {
+      target: { value: "CSE" },
+    });
+    await click("Save profile");
+    await screen.findByText("Profile updated successfully.");
+    assert.equal(updated.avatarUrl, "");
+    assert.equal(updated.name, "New Student Name");
+    assert.ok(
+      calls.some((c) => c.path === "/auth/profile" && c.method === "PUT"),
+    );
+  },
+);
+await check(
+  "Marketplace cards omit the redundant Available badge",
+  async () => {
+    render(<ListingCard item={item} />);
+    assert.equal(screen.queryByText("Available"), null);
+  },
+);
+await check(
+  "Admin photo upload uses the account endpoint and saves the returned URL",
+  async () => {
+    let updated;
+    mock((c) =>
+      c.path === "/auth/photo"
+        ? { imageUrl: "/uploads/" + "a".repeat(32) + ".png" }
+        : { ...seller, ...c.body },
+    );
+    render(
+      <AdminAccount
+        user={{ ...seller, role: "Admin", department: "Administration" }}
+        onUpdate={(u) => (updated = u)}
+      />,
+    );
+    const file = new File([new Uint8Array([137, 80, 78, 71])], "avatar.png", {
+      type: "image/png",
+    });
+    await userEvent.upload(screen.getByLabelText("Profile photo"), file);
+    await screen.findByAltText("Profile preview");
+    await click("Save profile");
+    await screen.findByText("Profile updated successfully.");
+    assert.ok(updated.avatarUrl.endsWith(".png"));
+    assert.ok(
+      calls.some((c) => c.path === "/auth/photo" && c.body instanceof FormData),
     );
   },
 );

@@ -78,10 +78,17 @@ PASS: Admin changes require current password
 PASS: Admin password confirmation must match
 PASS: Admin can change name and password
 PASS: Password is hashed and prior session version is revoked
-PASS: Student cannot use admin account settings
+PASS: Students can manage their own account
 PASS: Demo seller created with working hashed credentials
 PASS: 24 varied demo items inserted in database
 PASS: Repeated demo seed creates no duplicate items
 PASS: No-photo posts retain an empty photo for category placeholder
+PASS: Student saves name department and photo
+PASS: Profile fields persist for current user
+PASS: Profile rejects untrusted photo URL
+PASS: Profile photo can be removed
+PASS: Admin can edit personal information without a student profile
+PASS: Marketplace returns bounded page and full total
+PASS: Out of range page clamps to last available page
 
-85 controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.
+92 controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.
