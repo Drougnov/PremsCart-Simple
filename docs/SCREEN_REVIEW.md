@@ -31,7 +31,7 @@ The frontend has been redesigned while retaining the simple C# backend and exist
 | My trades | Clear active/history filters, selected conversation state, refresh busy state, explicit missing-trade message | History filter, missing ID, failed loading instead of false empty history |
 | Pending offer | Improved price/progress hierarchy; recipient actions remain distinct from sender state | Acceptance, counteroffer, no self-accept button, cancellation confirmation |
 | Pickup plan | Current plan displayed first, explicit Change pickup plan action, future local-time input | Seller schedule with UTC payload, buyer restriction, edit/show current plan |
-| Handover | Confirmation button unlocks automatically at the scheduled time; explicit handover confirmation retained | Early block, timed unlock, elapsed-time confirmation |
+| Handover | Confirmation is available once pickup is arranged, even before its scheduled time; explicit confirmation retained | Early confirmation, elapsed-time confirmation, and two-party completion |
 | Completed / closed trade | Clear review section; rejected/cancelled trades no longer show misleading progress | Review submission, already-reviewed state, cancellation and rejected state |
 | Private chat | Distinct message bubbles, counterpart header, auto-scroll near the bottom, new-message control while reading history, draft retained on failure | Send/trim/display/clear, failed-send draft retention |
 | Public profile | Refreshed identity panel, readable trade/rating statistics, review cards and empty state | Review rendering, accessible rating text, empty reviews |
@@ -68,8 +68,8 @@ Run `RUN_LOCALLY.md`, then use two independent browser profiles with buyer and s
 3. Upload a real PNG under 2 MB, submit, approve as admin, and verify the item appears. Reload to verify persistence.
 4. Search and open that item; send an offer as buyer; counter and accept across the two accounts.
 5. Send chat messages both ways, including a long message. Read older messages while the other account sends a new one.
-6. Save/update a future pickup time as seller. Check the buyer sees the plan after refreshing. Confirm that early completion is unavailable.
-7. After the pickup time, confirm separately as both people, then submit both reviews and check the public profiles.
+6. Save/update a future pickup time as seller. Check the buyer sees the plan automatically. Confirm that early handover confirmation is available.
+7. After the physical exchange, confirm separately as both people, then submit both reviews and check the public profiles.
 8. Report an item; hide/restore it as admin; resolve the report. Suspend/restore a test account and confirm its session loses access.
 9. Test a deliberate network failure and verify errors are recoverable without losing form text.
 

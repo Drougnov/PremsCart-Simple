@@ -18,6 +18,7 @@ import Trades from "../src/pages/Trades";
 import TradeDetail from "../src/components/TradeDetail";
 import Chat from "../src/components/Chat";
 import Profile from "../src/pages/Profile";
+import AdminAccount from "../src/pages/AdminAccount";
 import Admin from "../src/pages/Admin";
 import { ActionForm, Photo } from "../src/components/UI";
 import { api, setSessionUser } from "../src/api";
@@ -280,12 +281,18 @@ await check(
     );
   },
 );
-await check("Fixed-price purchase has a read-only amount", async () => {
-  mock((c) => (c.path === "/listings/7" ? { ...item, negotiable: false } : []));
-  render(<ListingDetail id="7" user={buyer} />);
-  await screen.findByRole("button", { name: "Request to buy" });
-  assert.ok(screen.getByLabelText("Price (৳)").readOnly);
-});
+await check(
+  "Fixed-price purchase shows a price badge without an amount input",
+  async () => {
+    mock((c) =>
+      c.path === "/listings/7" ? { ...item, negotiable: false } : [],
+    );
+    render(<ListingDetail id="7" user={buyer} />);
+    await screen.findByRole("button", { name: "Request to buy" });
+    assert.equal(screen.queryByRole("spinbutton"), null);
+    assert.ok(screen.getByText("Fixed price"));
+  },
+);
 await check("Owner and sold-item screens suppress buying", async () => {
   mock((c) => (c.path === "/listings/7" ? item : []));
   render(<ListingDetail id="7" user={seller} />);
@@ -410,7 +417,7 @@ await check(
 );
 await check("Registration, resend and email verification flow", async () => {
   mock((c) =>
-    c.path === "/auth/settings" ? { emailDomain: "bscse.puc.ac.bd" } : {},
+    c.path === "/auth/settings" ? { emailDomain: "bscse.puc.ac.bd" } : buyer,
   );
   render(<Auth onLogin={() => {}} />);
   await click("New here? Create an account");
@@ -429,7 +436,8 @@ await check("Registration, resend and email verification flow", async () => {
     target: { value: "123456" },
   });
   await click("Verify email");
-  await screen.findByText("Your email is verified. Sign in to get started.");
+  assert.equal(location.hash, "#/profile/2");
+  assert.equal(calls.filter((c) => c.path === "/auth/login").length, 0);
 });
 await check(
   "Unavailable selected trade does not silently open another trade",
@@ -440,21 +448,27 @@ await check(
     assert.equal(screen.queryByText("TRADE #9"), null);
   },
 );
-await check("Trade history filter isolates finished trades", async () => {
+await check("Rejected filter isolates rejected trades", async () => {
   mock((c) =>
     c.path === "/deals"
       ? [
           deal,
-          { ...deal, id: 10, title: "Completed book", status: "Completed" },
+          {
+            ...deal,
+            id: 10,
+            listingId: 8,
+            title: "Rejected book",
+            status: "Rejected",
+          },
         ]
       : [],
   );
   render(<Trades user={seller} selectedId="9" />);
   await screen.findByText("TRADE #9");
-  await click("History");
+  await click("Rejected");
   const list = screen.getByLabelText("Your trades");
   assert.equal(list.querySelectorAll("a").length, 1);
-  assert.ok(list.textContent.includes("Completed book"));
+  assert.ok(list.textContent.includes("Rejected book"));
 });
 await check(
   "Offer recipient can accept or submit an integer counteroffer",
@@ -515,7 +529,7 @@ await check(
   },
 );
 await check(
-  "Buyer cannot schedule pickup and early handover is disabled",
+  "Buyer cannot schedule pickup but early handover is enabled",
   async () => {
     mock(() => []);
     render(
@@ -532,9 +546,10 @@ await check(
       />,
     );
     assert.equal(screen.queryByLabelText("Campus location"), null);
-    assert.ok(
+    assert.equal(
       screen.getByRole("button", { name: "Confirm handover complete" })
         .disabled,
+      false,
     );
   },
 );
@@ -826,7 +841,7 @@ await check(
   },
 );
 await check(
-  "Pickup button unlocks when time arrives without refreshing the page",
+  "Pickup confirmation is available before the planned time",
   async () => {
     mock(() => []);
     render(
@@ -844,7 +859,7 @@ await check(
     const button = screen.getByRole("button", {
       name: "Confirm handover complete",
     });
-    assert.ok(button.disabled);
+    assert.equal(button.disabled, false);
     await waitFor(() => assert.equal(button.disabled, false), {
       timeout: 2000,
     });
@@ -916,6 +931,202 @@ await check(
     await click("Users");
     await click("Restore");
     assert.equal(submitted("/users/2").body.action, "restore");
+  },
+);
+
+await check("Administrator is redirected away from student pages", async () => {
+  mock((c) =>
+    c.path === "/auth/me" ? { id: 3, name: "Admin", role: "Admin" } : adminData,
+  );
+  window.history.replaceState(null, "", "/#/trades");
+  render(<App />);
+  await screen.findByRole("heading", { name: "Administration" });
+  await waitFor(() => assert.equal(location.hash, "#/admin"));
+  for (const name of ["My trades", "My items", "Sell an item", "Marketplace"])
+    assert.equal(screen.queryByRole("link", { name }), null);
+  assert.equal(
+    calls.some((c) => c.path === "/deals"),
+    false,
+  );
+});
+await check(
+  "Deleting a closed trade requires confirmation and removes it from the list",
+  async () => {
+    let deleted = false;
+    mock((c) =>
+      c.method === "DELETE"
+        ? ((deleted = true), {})
+        : c.path === "/deals"
+          ? deleted
+            ? []
+            : [{ ...deal, status: "Cancelled" }]
+          : [],
+    );
+    render(<Trades user={seller} selectedId="9" />);
+    await screen.findByRole("button", { name: "Delete trade and chat" });
+    await click("Delete trade and chat");
+    assert.equal(deleted, false);
+    await click("Yes, confirm");
+    await screen.findByText("A good deal starts with hello");
+    assert.ok(
+      calls.some((c) => c.method === "DELETE" && c.path === "/deals/9"),
+    );
+  },
+);
+await check("Active trades cannot be deleted directly", async () => {
+  mock(() => []);
+  render(<TradeDetail deal={deal} user={seller} refresh={async () => {}} />);
+  assert.equal(
+    screen.queryByRole("button", { name: "Delete trade and chat" }),
+    null,
+  );
+});
+await check(
+  "Trades refresh automatically and preserve a chat draft",
+  async () => {
+    let changed = false;
+    mock((c) =>
+      c.path === "/deals"
+        ? [{ ...deal, status: changed ? "Accepted" : "Pending" }]
+        : [],
+    );
+    render(<Trades user={seller} selectedId="9" />);
+    await screen.findByText("TRADE #9");
+    fireEvent.change(screen.getByLabelText("Your message"), {
+      target: { value: "Unsent draft" },
+    });
+    changed = true;
+    await screen.findByRole(
+      "button",
+      { name: "Save pickup plan" },
+      { timeout: 6500 },
+    );
+    assert.equal(screen.getByLabelText("Your message").value, "Unsent draft");
+  },
+);
+await check(
+  "Marketplace reconnect refresh preserves search filters",
+  async () => {
+    let changed = false;
+    mock(() => [{ ...item, title: changed ? "New server title" : item.title }]);
+    render(<Marketplace mine={false} user={buyer} />);
+    await screen.findByRole("link", { name: item.title });
+    fireEvent.change(screen.getByLabelText("Search items"), {
+      target: { value: "calculator" },
+    });
+    changed = true;
+    fireEvent(window, new Event("online"));
+    await screen.findByRole("link", { name: "New server title" });
+    assert.equal(screen.getByLabelText("Search items").value, "calculator");
+  },
+);
+
+await check(
+  "Long descriptions expand and collapse without shifting the whole initial page",
+  async () => {
+    mock((c) =>
+      c.path === "/listings/7"
+        ? { ...item, description: "Long description. ".repeat(100) }
+        : [],
+    );
+    render(<ListingDetail id="7" user={buyer} />);
+    await screen.findByRole("button", { name: "See more" });
+    assert.ok(
+      document.querySelector(".description p").textContent.length < 330,
+    );
+    await click("See more");
+    assert.ok(
+      document.querySelector(".description p").textContent.length > 1000,
+    );
+    await click("See less");
+    assert.ok(
+      document.querySelector(".description p").textContent.length < 330,
+    );
+  },
+);
+await check(
+  "Missing item photos use category icons instead of unrelated photos",
+  async () => {
+    render(
+      <ListingCard
+        item={{ ...item, imageUrl: "", category: "Project parts" }}
+      />,
+    );
+    assert.ok(screen.getByText("Project parts · No photo"));
+    assert.equal(document.querySelector(".card-image img"), null);
+    assert.ok(document.querySelector(".fa-microchip"));
+  },
+);
+await check(
+  "Same buyer and item share one trade with current status",
+  async () => {
+    mock((c) =>
+      c.path === "/deals"
+        ? [
+            { ...deal, id: 11, status: "Rejected" },
+            {
+              ...deal,
+              id: 12,
+              status: "Scheduled",
+              pickupTime: new Date().toISOString(),
+            },
+          ]
+        : [],
+    );
+    render(<Trades user={seller} selectedId="11" />);
+    await screen.findByText("TRADE #12");
+    assert.equal(
+      screen.getByLabelText("Your trades").querySelectorAll("a").length,
+      1,
+    );
+    assert.equal(screen.queryByRole("button", { name: "History" }), null);
+  },
+);
+await check("Cancel is prominent and replaces the decline action", async () => {
+  mock(() => []);
+  render(<TradeDetail deal={deal} user={seller} refresh={async () => {}} />);
+  assert.equal(screen.queryByRole("button", { name: "Decline offer" }), null);
+  assert.ok(
+    screen
+      .getByRole("button", { name: "Cancel this trade" })
+      .classList.contains("danger"),
+  );
+});
+await check(
+  "Admin account form updates name and requires matching new passwords",
+  async () => {
+    let updated;
+    mock(() => ({ id: 3, role: "Admin", name: "Updated Admin" }));
+    render(
+      <AdminAccount
+        user={{ id: 3, role: "Admin", name: "Admin" }}
+        onUpdate={(u) => (updated = u)}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Updated Admin" },
+    });
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "Campus123!" },
+    });
+    fireEvent.change(screen.getByLabelText("New password (optional)"), {
+      target: { value: "NewPassword!123" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "Mismatch123" },
+    });
+    await click("Save account changes");
+    await screen.findByText("New passwords do not match.");
+    assert.equal(calls.length, 0);
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPassword!123" },
+    });
+    await click("Save account changes");
+    await screen.findByText("Account updated successfully.");
+    assert.equal(updated.name, "Updated Admin");
+    assert.ok(
+      calls.some((c) => c.method === "PUT" && c.path === "/auth/account"),
+    );
   },
 );
 console.log(

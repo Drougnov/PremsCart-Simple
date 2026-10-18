@@ -7,6 +7,7 @@ import ListingDetail from "./pages/ListingDetail";
 import ListingForm from "./pages/ListingForm";
 import Trades from "./pages/Trades";
 import Profile from "./pages/Profile";
+import AdminAccount from "./pages/AdminAccount";
 import Admin from "./pages/Admin";
 
 export default function App() {
@@ -23,11 +24,18 @@ export default function App() {
     async function refreshSession(event) {
       try {
         const current = await api("/auth/me");
-        if (active) updateUser(current);
+        if (active) {
+          updateUser(current);
+          setError((previous) =>
+            previous === "Cannot reach the server. Reconnecting automatically."
+              ? ""
+              : previous,
+          );
+        }
       } catch (e) {
         if (active && e.status === 401) updateUser(null);
         else if (active)
-          setError("Cannot reach the server. Start the backend and refresh.");
+          setError("Cannot reach the server. Reconnecting automatically.");
       } finally {
         if (active) setLoading(false);
       }
@@ -37,6 +45,9 @@ export default function App() {
         );
     }
     refreshSession();
+    const sessionTimer = setInterval(() => {
+      if (document.visibilityState !== "hidden") refreshSession();
+    }, 15000);
     const change = () => {
       setRoute(location.hash.slice(1) || "/");
       window.scrollTo(0, 0);
@@ -46,6 +57,7 @@ export default function App() {
     window.addEventListener("premscart-session-change", refreshSession);
     return () => {
       active = false;
+      clearInterval(sessionTimer);
       window.removeEventListener("hashchange", change);
       window.removeEventListener("focus", refreshSession);
       window.removeEventListener("premscart-session-change", refreshSession);
@@ -61,11 +73,22 @@ export default function App() {
     }
   }
   const [page, id] = route.split("?")[0].split("/").filter(Boolean);
+  useEffect(() => {
+    if (user?.role === "Admin" && !["/admin", "/admin/account"].includes(route))
+      location.hash = "/admin";
+  }, [user?.role, route]);
   const protectedPage = ["sell", "edit", "mine", "trades", "admin"].includes(
     page,
   );
   let content;
   if (loading) content = <Loading label="Opening your campus marketplace…" />;
+  else if (user?.role === "Admin")
+    content =
+      route === "/admin/account" ? (
+        <AdminAccount user={user} onUpdate={updateUser} />
+      ) : (
+        <Admin />
+      );
   else if (page === "login" || (protectedPage && !user))
     content = (
       <Auth
@@ -118,17 +141,19 @@ export default function App() {
       </div>
       <header className="site-header">
         <div className="nav-wrap">
-          <a className="brand" href="#/">
+          <a className="brand" href={user?.role === "Admin" ? "#/admin" : "#/"}>
             <span className="brand-icon">
               <Icon name="bag" />
             </span>
             PremsCart<span className="brand-dot">.</span>
           </a>
           <nav aria-label="Main navigation">
-            <a className={!page ? "active" : ""} href="#/">
-              Marketplace
-            </a>
-            {user && (
+            {user?.role !== "Admin" && (
+              <a className={!page ? "active" : ""} href="#/">
+                Marketplace
+              </a>
+            )}
+            {user && user.role !== "Admin" && (
               <>
                 <a
                   className={page === "trades" ? "active" : ""}
@@ -142,6 +167,9 @@ export default function App() {
               </>
             )}
             {user?.role === "Admin" && (
+              <a href="#/admin/account">Account settings</a>
+            )}
+            {user?.role === "Admin" && (
               <a className={page === "admin" ? "active" : ""} href="#/admin">
                 Admin
               </a>
@@ -153,8 +181,16 @@ export default function App() {
                 <a
                   className="avatar"
                   title={user.name}
-                  aria-label={`My profile: ${user.name}`}
-                  href={`#/profile/${user.id}`}
+                  aria-label={
+                    user.role === "Admin"
+                      ? "Account settings"
+                      : `My profile: ${user.name}`
+                  }
+                  href={
+                    user.role === "Admin"
+                      ? "#/admin/account"
+                      : `#/profile/${user.id}`
+                  }
                 >
                   {user.name[0]}
                 </a>
@@ -173,7 +209,7 @@ export default function App() {
                 Sign in
               </a>
             )}
-            {page !== "sell" && page !== "edit" && (
+            {user?.role !== "Admin" && page !== "sell" && page !== "edit" && (
               <a className="button small" href="#/sell">
                 <Icon name="plus" size={17} />
                 Sell an item

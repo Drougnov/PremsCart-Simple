@@ -1,6 +1,6 @@
 PASS: Seller cannot buy own item
 PASS: Buyer sends offer
-PASS: Duplicate pending offer blocked
+PASS: Duplicate offer returns existing conversation
 PASS: Cannot accept own offer
 PASS: Non-participant cannot read chat
 PASS: Non-participant cannot send chat
@@ -12,10 +12,10 @@ PASS: Review blocked before completion
 PASS: Buyer cannot set seller pickup plan
 PASS: Only campus pickup locations allowed
 PASS: Seller schedules pickup
-PASS: Early handover blocked
-PASS: One confirmation does not complete trade
+PASS: Pickup is still in the future during both confirmations
+PASS: Early first confirmation does not complete trade
 PASS: Cannot cancel after handover confirmation
-PASS: Both confirmations complete trade
+PASS: Both early confirmations complete trade
 PASS: Completed trade cannot be completed again
 PASS: Buyer reviews seller
 PASS: Duplicate review blocked
@@ -40,6 +40,7 @@ PASS: Wrong code does not verify user
 PASS: Expired code is rejected
 PASS: Verification attempt limit is enforced
 PASS: Correct unexpired code verifies user
+PASS: Verification issues a real authentication cookie
 PASS: Verification code cannot be reused
 PASS: Incorrect password is rejected
 PASS: Repeated failed logins temporarily lock the account
@@ -56,5 +57,31 @@ PASS: Stale seller tab cannot act with a buyer cookie
 PASS: Matching session is allowed through
 PASS: Trade response explicitly identifies the seller
 PASS: Trade response explicitly identifies the buyer
+PASS: Outsider cannot delete a trade
+PASS: Delete is scoped to the requesting participant
+PASS: Deleted conversation cannot be opened by that participant
+PASS: Deleted conversation cannot receive messages from that participant
+PASS: Deleted trade disappears from buyer list
+PASS: Other participant keeps their conversation
+PASS: Deletion preserves completed transaction and both reviews
+PASS: Admin has no public student profile
+PASS: Active transaction cannot be hidden before cancellation
+PASS: Admin student action blocked: /api/deals
+PASS: Admin student action blocked: /api/community/reviews
+PASS: Admin student action blocked: /api/listings/upload
+PASS: Buyer cancels attempt before retry
+PASS: Retry reopens same buyer/item attempt without creating another trade
+PASS: Reopened conversation is visible to both participants
+PASS: Seller cancellation of pending offer appears in Rejected tab
+PASS: Reoffer preserves prior messages
+PASS: Admin changes require current password
+PASS: Admin password confirmation must match
+PASS: Admin can change name and password
+PASS: Password is hashed and prior session version is revoked
+PASS: Student cannot use admin account settings
+PASS: Demo seller created with working hashed credentials
+PASS: 24 varied demo items inserted in database
+PASS: Repeated demo seed creates no duplicate items
+PASS: No-photo posts retain an empty photo for category placeholder
 
-58 controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.
+85 controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.

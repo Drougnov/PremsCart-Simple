@@ -13,7 +13,7 @@ PASS: My items has a prominent edit action without another sell CTA
 PASS: Failed product image displays a meaningful fallback
 PASS: New buyer offer uses whole-taka value and opens the trade
 PASS: Existing offer opens its conversation instead of creating a duplicate
-PASS: Fixed-price purchase has a read-only amount
+PASS: Fixed-price purchase shows a price badge without an amount input
 PASS: Owner and sold-item screens suppress buying
 PASS: Item reporting submits once and shows confirmation
 PASS: PNG upload is sent as multipart, then saved with its returned path
@@ -22,11 +22,11 @@ PASS: Editing someone else’s item is blocked in the UI
 PASS: Sign-in supports password visibility and keeps the email underscore
 PASS: Registration, resend and email verification flow
 PASS: Unavailable selected trade does not silently open another trade
-PASS: Trade history filter isolates finished trades
+PASS: Rejected filter isolates rejected trades
 PASS: Offer recipient can accept or submit an integer counteroffer
 PASS: Sender cannot accept their own pending offer
 PASS: Seller pickup sends the permitted location and UTC time
-PASS: Buyer cannot schedule pickup and early handover is disabled
+PASS: Buyer cannot schedule pickup but early handover is enabled
 PASS: Elapsed handover requires an explicit confirmation
 PASS: Cancellation asks for confirmation; declined trades have no progress bar
 PASS: Completed trade publishes a review and suppresses an already published form
@@ -41,10 +41,20 @@ PASS: Stale session error dispatches account-refresh event
 PASS: Decimal prices fail native form validity
 PASS: Saving is disabled while a photo upload is pending
 PASS: Owner edits preserve photo and submit to the existing item endpoint
-PASS: Pickup button unlocks when time arrives without refreshing the page
+PASS: Pickup confirmation is available before the planned time
 PASS: Existing pickup plan is shown first and editing is an explicit action
 PASS: Failed trade loading is not presented as an empty trade history
 PASS: Sign-out clears member navigation and returns to marketplace
 PASS: Suspended member and hidden item can be restored by admin
+PASS: Administrator is redirected away from student pages
+PASS: Deleting a closed trade requires confirmation and removes it from the list
+PASS: Active trades cannot be deleted directly
+PASS: Trades refresh automatically and preserve a chat draft
+PASS: Marketplace reconnect refresh preserves search filters
+PASS: Long descriptions expand and collapse without shifting the whole initial page
+PASS: Missing item photos use category icons instead of unrelated photos
+PASS: Same buyer and item share one trade with current status
+PASS: Cancel is prominent and replaces the decline action
+PASS: Admin account form updates name and requires matching new passwords
 
-43 frontend interaction checks passed; 0 failed. Simulated API responses in jsdom, not browser or backend E2E.
+53 frontend interaction checks passed; 0 failed. Simulated API responses in jsdom, not browser or backend E2E.

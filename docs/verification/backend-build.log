@@ -1,7 +1,7 @@
 
 Welcome to .NET 10.0!
 ---------------------
-SDK Version: 10.0.401
+SDK Version: 10.0.100
 
 Telemetry
 ---------
@@ -22,11 +22,11 @@ Report issues and find source on GitHub: https://github.com/dotnet/core
 Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
 --------------------------------------------------------------------------------------
   Determining projects to restore...
-  Restored PremsCart-Simple/backend/PremsCart.csproj (in 35.56 sec).
-  PremsCart -> PremsCart-Simple/backend/bin/Debug/net10.0/PremsCart.dll
+  Restored /workspace/scratch/b33d4afb4a47/corrected/PremsCart-Connected/backend/PremsCart.csproj (in 36.22 sec).
+  PremsCart -> /workspace/scratch/b33d4afb4a47/corrected/PremsCart-Connected/backend/bin/Release/net10.0/PremsCart.dll
 
 Build succeeded.
     0 Warning(s)
     0 Error(s)
 
-Time Elapsed 00:00:36.69
+Time Elapsed 00:00:40.51

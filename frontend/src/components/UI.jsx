@@ -65,17 +65,28 @@ export function Empty({ title, children, action }) {
   );
 }
 
-export function Photo({ src, alt = "", ...props }) {
+export function Photo({ src, alt = "", category, ...props }) {
   const [failedSource, setFailedSource] = useState(null);
-  if (failedSource === src)
+  if (!src || failedSource === src)
     return (
       <div
         className={`photo-fallback ${props.className || ""}`}
         role="img"
         aria-label={alt || "Photo unavailable"}
       >
-        <Icon name="camera" size={28} />
-        <span>Photo unavailable</span>
+        <Icon
+          name={
+            {
+              Books: "book",
+              Electronics: "laptop",
+              Stationery: "pen",
+              "Project parts": "parts",
+              Other: "bag",
+            }[category] || "camera"
+          }
+          size={36}
+        />
+        <span>{category ? `${category} · No photo` : "Photo unavailable"}</span>
       </div>
     );
   return (

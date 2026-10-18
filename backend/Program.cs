@@ -35,7 +35,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         {
             var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
             var id = int.Parse(context.Principal!.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-            if (!await db.Users.AnyAsync(u => u.Id == id && !u.IsSuspended && u.IsVerified))
+            var version = int.TryParse(context.Principal.FindFirst("session_version")?.Value, out var v) ? v : 0;
+            if (!await db.Users.AnyAsync(u => u.Id == id && !u.IsSuspended && u.IsVerified && u.SessionVersion == version))
                 context.RejectPrincipal();
         };
     });
@@ -49,9 +50,16 @@ using (var scope = app.Services.CreateScope())
     await db.Database.EnsureCreatedAsync();
     // Additive upgrade for existing installations; preserve all transaction records.
     await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "SessionVersion" integer NOT NULL DEFAULT 0;
         ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "BuyerDeleted" boolean NOT NULL DEFAULT FALSE;
         ALTER TABLE "Deals" ADD COLUMN IF NOT EXISTS "SellerDeleted" boolean NOT NULL DEFAULT FALSE;
         """);
+    await db.Database.ExecuteSqlRawAsync("""
+        UPDATE "Listings" SET "ImageUrl" = ''
+        WHERE "ImageUrl" = '/images/other.jpg';
+        """);
+    if (builder.Configuration.GetValue<bool>("DemoCatalog:Enabled"))
+        await DemoCatalog.CreateAsync(db, scope.ServiceProvider.GetRequiredService<PasswordHasher<User>>());
     if (app.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("SeedDemoData"))
         await SeedData.CreateAsync(db, scope.ServiceProvider.GetRequiredService<PasswordHasher<User>>());
     // Optionally create exactly one administrator on a fresh production deployment.
@@ -113,7 +121,11 @@ app.Use(async (context, next) =>
     }
 });
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions {
+    OnPrepareResponse = context => {
+        if (context.File.Name == "index.html") context.Context.Response.Headers.CacheControl = "no-store";
+    }
+});
 app.UseAuthentication();
 app.Use(SessionGuard.CheckAsync);
 app.UseAuthorization();

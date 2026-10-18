@@ -18,5 +18,6 @@ public class User
     [JsonIgnore] public int VerificationAttempts { get; set; }
     [JsonIgnore] public int LoginAttempts { get; set; }
     [JsonIgnore] public DateTime? LockedUntil { get; set; }
+    [JsonIgnore] public int SessionVersion { get; set; }
     public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 }

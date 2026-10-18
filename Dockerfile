@@ -12,6 +12,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
 COPY backend/ ./backend/
 COPY --from=frontend-build /src/backend/wwwroot/ ./backend/wwwroot/
+RUN test ! -d backend/backend && test ! -d backend/checks || (echo "Nested project detected: replace backend instead of merging folders" && exit 1)
 RUN dotnet restore ./backend/PremsCart.csproj
 RUN dotnet publish ./backend/PremsCart.csproj -c Release --no-restore -o /publish /p:UseAppHost=false
 

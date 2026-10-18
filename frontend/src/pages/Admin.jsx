@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useRefreshTick } from "../useRefreshTick";
+import { useEffect, useRef, useState } from "react";
 import { api, money } from "../api";
 import {
   Badge,
@@ -11,6 +12,7 @@ import {
 } from "../components/UI";
 
 export default function Admin() {
+  const refreshTick = useRefreshTick();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("listings");
   const [error, setError] = useState("");
@@ -19,17 +21,24 @@ export default function Admin() {
   const [pendingOnly, setPendingOnly] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
   const [message, setMessage] = useState("");
+  const requestNumber = useRef(0);
   async function load() {
+    const request = ++requestNumber.current;
     try {
-      setData(await api("/admin"));
+      const next = await api("/admin");
+      if (request !== requestNumber.current) return;
+      setData(next);
       setError("");
     } catch (e) {
-      setError(e.message);
+      if (request === requestNumber.current) setError(e.message);
     }
   }
   useEffect(() => {
     load();
-  }, []);
+    return () => {
+      requestNumber.current++;
+    };
+  }, [refreshTick]);
   async function act(type, id, action) {
     setBusy(true);
     setMessage("");
@@ -58,15 +67,7 @@ export default function Admin() {
     ) || [];
   return (
     <>
-      <PageTitle
-        eyebrow="COMMUNITY CARE"
-        title="Administration"
-        action={
-          <button className="button secondary" onClick={load}>
-            Refresh
-          </button>
-        }
-      >
+      <PageTitle eyebrow="COMMUNITY CARE" title="Administration">
         Review items, resolve reports, and keep your campus marketplace
         trustworthy.
       </PageTitle>
@@ -101,7 +102,7 @@ export default function Admin() {
       {!data ? (
         error ? (
           <Empty title="Administration is unavailable">
-            Use Refresh to try again.
+            Reconnecting automatically…
           </Empty>
         ) : (
           <Loading label="Loading administration…" />

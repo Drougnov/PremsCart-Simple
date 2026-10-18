@@ -28,10 +28,14 @@ export default function TradeDetail({ deal, user, refresh }) {
     setError("");
     setBusy(true);
     try {
-      await api(`/deals/${deal.id}/action`, {
-        method: "POST",
-        body: { action: name, ...extra },
-      });
+      if (name === "delete") {
+        await api(`/deals/${deal.id}`, { method: "DELETE" });
+        location.hash = "/trades";
+      } else
+        await api(`/deals/${deal.id}/action`, {
+          method: "POST",
+          body: { action: name, ...extra },
+        });
       setConfirming("");
       await refresh();
     } catch (e) {
@@ -95,13 +99,6 @@ export default function TradeDetail({ deal, user, refresh }) {
                     onClick={() => action("accept")}
                   >
                     Accept {money(deal.amount)}
-                  </button>
-                  <button
-                    className="button secondary"
-                    disabled={busy}
-                    onClick={() => setConfirming("reject")}
-                  >
-                    Decline offer
                   </button>
                 </div>
                 {deal.negotiable && (
@@ -219,11 +216,7 @@ export default function TradeDetail({ deal, user, refresh }) {
                 </p>
                 <button
                   className="button"
-                  disabled={
-                    busy ||
-                    confirmed ||
-                    new Date(deal.pickupTime).getTime() > now
-                  }
+                  disabled={busy || confirmed}
                   onClick={() => setConfirming("complete")}
                 >
                   {confirmed
@@ -231,9 +224,9 @@ export default function TradeDetail({ deal, user, refresh }) {
                     : "Confirm handover complete"}
                 </button>
                 <small className="block">
-                  {new Date(deal.pickupTime).getTime() > now
-                    ? "Confirmation opens automatically at the pickup time."
-                    : "Confirm only after exchanging the item and payment. Refresh trades to check the other person’s confirmation."}
+                  Confirm after exchanging the item and payment, even before the
+                  planned time. Both people must confirm. Updates appear
+                  automatically.
                 </small>
               </>
             )}
@@ -243,19 +236,30 @@ export default function TradeDetail({ deal, user, refresh }) {
           !deal.buyerConfirmed &&
           !deal.sellerConfirmed && (
             <button
-              className="text-button danger"
+              className="button danger"
               disabled={busy}
               onClick={() => setConfirming("cancel")}
             >
               Cancel this trade
             </button>
           )}
+        {["Completed", "Cancelled", "Rejected"].includes(deal.status) && (
+          <button
+            className="button danger"
+            disabled={busy}
+            onClick={() => setConfirming("delete")}
+          >
+            Delete trade and chat
+          </button>
+        )}
         {confirming && (
           <div className="confirm-box">
             <p>
-              {confirming === "complete"
-                ? "Confirm only after the item and payment have been exchanged."
-                : `Are you sure you want to ${confirming === "reject" ? "decline this offer" : "cancel this trade"}?`}
+              {confirming === "delete"
+                ? "Remove this trade and chat from your view? The other person’s copy and published reviews are preserved."
+                : confirming === "complete"
+                  ? "Confirm only after the item and payment have been exchanged."
+                  : `Are you sure you want to ${confirming === "reject" ? "decline this offer" : "cancel this trade"}?`}
             </p>
             <div className="row">
               <button
@@ -276,8 +280,8 @@ export default function TradeDetail({ deal, user, refresh }) {
         )}
         {["Rejected", "Cancelled"].includes(deal.status) && (
           <Notice>
-            This trade is {deal.status.toLowerCase()}. Your conversation remains
-            in your history.
+            This trade is {deal.status.toLowerCase()}. You can remove this
+            conversation from your trades.
           </Notice>
         )}
         {deal.status === "Completed" &&

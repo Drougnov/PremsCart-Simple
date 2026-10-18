@@ -1,8 +1,0 @@
-**/bin/
-**/obj/
-**/node_modules/
-backend/wwwroot/assets/
-backend/wwwroot/uploads/
-backend/appsettings.Development.json
-*.user
-.DS_Store

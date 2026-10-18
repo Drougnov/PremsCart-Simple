@@ -5,11 +5,11 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 
 vite v6.3.0 building for production...
 transforming...
-✓ 43 modules transformed.
+✓ 45 modules transformed.
 rendering chunks...
 computing gzip size...
 ../backend/wwwroot/index.html                            0.58 kB │ gzip:  0.35 kB
 ../backend/wwwroot/assets/fa-solid-900-IAB4Droh.woff2  119.49 kB
-../backend/wwwroot/assets/index-B2pq4Tdm.css            96.95 kB │ gzip: 23.90 kB
-../backend/wwwroot/assets/index-DkK_KZdm.js            229.55 kB │ gzip: 71.51 kB
-✓ built in 848ms
+../backend/wwwroot/assets/index-aeCsEJPi.css            99.93 kB │ gzip: 24.65 kB
+../backend/wwwroot/assets/index-BQQEMqSA.js            233.37 kB │ gzip: 72.66 kB
+✓ built in 885ms

@@ -1,3 +1,4 @@
+import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useState } from "react";
 import { api, money } from "../api";
 import {
@@ -10,6 +11,8 @@ import {
 } from "../components/UI";
 
 export default function ListingDetail({ id, user }) {
+  const refreshTick = useRefreshTick();
+  const [expanded, setExpanded] = useState(false);
   const [item, setItem] = useState(null);
   const [error, setError] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -22,6 +25,7 @@ export default function ListingDetail({ id, user }) {
     let active = true;
     api("/deals")
       .then((deals) => {
+        if (active) setDealError("");
         if (active)
           setExistingDeal(
             deals.find(
@@ -41,14 +45,25 @@ export default function ListingDetail({ id, user }) {
     return () => {
       active = false;
     };
-  }, [id, user?.id]);
+  }, [id, user?.id, refreshTick]);
   useEffect(() => {
+    let active = true;
     api(`/listings/${id}`)
-      .then(setItem)
-      .catch((e) =>
-        setError(e.status === 404 ? "This item is unavailable." : e.message),
+      .then((data) => {
+        if (active) {
+          setItem(data);
+          setError("");
+        }
+      })
+      .catch(
+        (e) =>
+          active &&
+          setError(e.status === 404 ? "This item is unavailable." : e.message),
       );
-  }, [id]);
+    return () => {
+      active = false;
+    };
+  }, [id, refreshTick]);
   if (error) return <Notice>{error}</Notice>;
   if (!item) return <Loading label="Loading this find…" />;
   return (
@@ -58,7 +73,11 @@ export default function ListingDetail({ id, user }) {
       </a>
       <section className="detail-layout">
         <div className="detail-image">
-          <Photo src={item.imageUrl} alt={item.title} />
+          <Photo
+            src={item.imageUrl}
+            alt={item.title}
+            category={item.category}
+          />
         </div>
         <div className="detail-copy">
           <span className="eyebrow">{item.category}</span>
@@ -73,7 +92,22 @@ export default function ListingDetail({ id, user }) {
               ? "A fair offer is always welcome."
               : "This item has a fixed price."}
           </p>
-          <p className="description">{item.description}</p>
+          <div className="description">
+            <p>
+              {expanded || item.description.length <= 320
+                ? item.description
+                : `${item.description.slice(0, 320).trimEnd()}…`}
+            </p>
+            {item.description.length > 320 && (
+              <button
+                className="text-button"
+                aria-expanded={expanded}
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded ? "See less" : "See more"}
+              </button>
+            )}
+          </div>
           <a className="seller-box" href={`#/profile/${item.sellerId}`}>
             <span className="avatar">{item.sellerName[0]}</span>
             <span>
@@ -114,24 +148,36 @@ export default function ListingDetail({ id, user }) {
               onSubmit={async (values) => {
                 const result = await api("/deals", {
                   method: "POST",
-                  body: { listingId: item.id, amount: Number(values.amount) },
+                  body: {
+                    listingId: item.id,
+                    amount: item.negotiable
+                      ? Number(values.amount)
+                      : item.price,
+                  },
                 });
                 location.hash = `/trades/${result.id}`;
               }}
             >
-              <label>
-                {item.negotiable ? "Your offer (৳)" : "Price (৳)"}
-                <input
-                  name="amount"
-                  type="number"
-                  step="1"
-                  min="1"
-                  max="1000000"
-                  defaultValue={item.price}
-                  readOnly={!item.negotiable}
-                  required
-                />
-              </label>
+              {item.negotiable ? (
+                <label>
+                  Your offer (৳)
+                  <input
+                    name="amount"
+                    type="number"
+                    step="1"
+                    min="1"
+                    max="1000000"
+                    defaultValue={item.price}
+                    readOnly={!item.negotiable}
+                    required
+                  />
+                </label>
+              ) : (
+                <div className="fixed-price-summary">
+                  <strong>{money(item.price)}</strong>
+                  <Badge>Fixed price</Badge>
+                </div>
+              )}
             </ActionForm>
           )}
           <Notice>{dealError}</Notice>

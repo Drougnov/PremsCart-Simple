@@ -13,7 +13,7 @@ public class Listing
     public string Condition { get; set; } = "Good";
     public decimal Price { get; set; }
     public bool Negotiable { get; set; } = true;
-    public string ImageUrl { get; set; } = "/images/books.jpg";
+    public string ImageUrl { get; set; } = "";
     // Approval and availability are separate: hiding a listing never cancels a deal.
     public bool IsApproved { get; set; }
     public bool IsHidden { get; set; }

@@ -20,4 +20,5 @@ public record DealActionRequest([Required] string Action, decimal? Amount, strin
 public record MessageRequest([Required, StringLength(1500)] string Body);
 public record ReviewRequest(int DealId, [Range(1, 5)] int Rating, [Required, StringLength(1000)] string Comment);
 public record ReportRequest(int ListingId, [Required, StringLength(1000)] string Reason);
+public record AccountRequest([Required, StringLength(80, MinimumLength = 2)] string Name, [Required] string CurrentPassword, [StringLength(100, MinimumLength = 8)] string? NewPassword, string? ConfirmPassword);
 public record AdminActionRequest([Required] string Action);

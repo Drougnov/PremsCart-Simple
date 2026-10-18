@@ -1,9 +1,11 @@
+import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useState } from "react";
 import { api, categories, conditions } from "../api";
 import ListingCard from "../components/ListingCard";
 import { Empty, Icon, Loading, Notice, PageTitle } from "../components/UI";
 
 export default function Marketplace({ mine, user }) {
+  const refreshTick = useRefreshTick();
   const [items, setItems] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
@@ -16,7 +18,7 @@ export default function Marketplace({ mine, user }) {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    if (refreshTick === 0) setLoading(true);
     const timer = setTimeout(() => {
       const query = new URLSearchParams({ ...filters, mine });
       api(`/listings?${query}`)
@@ -37,7 +39,7 @@ export default function Marketplace({ mine, user }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [filters, mine]);
+  }, [filters, mine, refreshTick]);
   const update = (name, value) =>
     setFilters((old) => ({ ...old, [name]: value }));
   const hasFilters = Object.values(filters).some(Boolean);
@@ -95,7 +97,7 @@ export default function Marketplace({ mine, user }) {
                     .focus({ preventScroll: true });
                 }}
               >
-                Explore the finds <Icon name="arrow" size={16} />
+                Explore the goods <Icon name="arrow" size={16} />
               </a>
               <div className="hero-note">
                 <Icon name="shield" size={17} />

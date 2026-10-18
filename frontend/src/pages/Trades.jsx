@@ -1,3 +1,4 @@
+import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useRef, useState } from "react";
 import TradeDetail from "../components/TradeDetail";
 import { api, money } from "../api";
@@ -12,25 +13,47 @@ import {
 } from "../components/UI";
 
 export default function Trades({ user, selectedId }) {
+  const refreshTick = useRefreshTick();
   const [deals, setDeals] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [refreshing, setRefreshing] = useState(false);
+  const requestNumber = useRef(0);
   const alive = useRef(true);
   async function load() {
-    setRefreshing(true);
+    const request = ++requestNumber.current;
     try {
       const next = await api("/deals");
-      if (!alive.current) return;
-      setDeals(next);
+      if (!alive.current || request !== requestNumber.current) return;
+      const groups = new Map();
+      const rank = (d) =>
+        ["Pending", "Accepted", "Scheduled"].includes(d.status)
+          ? 2
+          : d.status === "Completed"
+            ? 1
+            : 0;
+      next.forEach((d) => {
+        const key = `${d.listingId}-${d.buyerId}`;
+        const old = groups.get(key);
+        if (!old) groups.set(key, { ...d, relatedIds: [d.id] });
+        else {
+          const relatedIds = [...old.relatedIds, d.id];
+          groups.set(
+            key,
+            rank(d) > rank(old) || (rank(d) === rank(old) && d.id > old.id)
+              ? { ...d, relatedIds }
+              : { ...old, relatedIds },
+          );
+        }
+      });
+      setDeals([...groups.values()]);
       setError("");
     } catch (e) {
-      if (alive.current) setError(e.message);
+      if (alive.current && request === requestNumber.current)
+        setError(e.message);
     } finally {
-      if (alive.current) {
+      if (alive.current && request === requestNumber.current) {
         setLoading(false);
-        setRefreshing(false);
       }
     }
   }
@@ -39,34 +62,22 @@ export default function Trades({ user, selectedId }) {
     load();
     return () => {
       alive.current = false;
+      requestNumber.current++;
     };
-  }, []);
-  const selected = selectedId
-    ? deals.find((d) => d.id === Number(selectedId))
-    : deals[0];
+  }, [refreshTick]);
   const visibleDeals = deals.filter(
     (d) =>
       filter === "all" ||
       (filter === "active"
         ? ["Pending", "Accepted", "Scheduled"].includes(d.status)
-        : ["Completed", "Cancelled", "Rejected"].includes(d.status)),
+        : d.status === "Rejected"),
   );
+  const selected = selectedId
+    ? deals.find((d) => d.relatedIds.includes(Number(selectedId)))
+    : visibleDeals[0];
   return (
     <>
-      <PageTitle
-        eyebrow="CONVERSATIONS TO HANDOVERS"
-        title="My trades"
-        action={
-          <button
-            className="button secondary"
-            disabled={refreshing}
-            onClick={load}
-          >
-            <Icon name="refresh" size={15} />
-            {refreshing ? "Refreshing…" : "Refresh trades"}
-          </button>
-        }
-      >
+      <PageTitle eyebrow="CONVERSATIONS TO HANDOVERS" title="My trades">
         Keep your offers, pickup plans, and conversations in one place.
       </PageTitle>
       <Notice>{error}</Notice>
@@ -74,7 +85,7 @@ export default function Trades({ user, selectedId }) {
         <Loading label="Loading your trades…" />
       ) : error && !deals.length ? (
         <Empty title="We couldn’t load your trades">
-          Use Refresh trades to try again.
+          Reconnecting automatically…
         </Empty>
       ) : !deals.length ? (
         <Empty title="A good deal starts with hello">
@@ -84,14 +95,21 @@ export default function Trades({ user, selectedId }) {
         <div className="trades-layout">
           <aside className="trade-list" aria-label="Your trades">
             <div className="trade-filters" aria-label="Filter trades">
-              {["all", "active", "history"].map((value) => (
+              {["all", "active", "rejected"].map((value) => (
                 <button
                   key={value}
                   className={`chip ${filter === value ? "selected" : ""}`}
                   aria-pressed={filter === value}
-                  onClick={() => setFilter(value)}
+                  onClick={() => {
+                    setFilter(value);
+                    location.hash = "/trades";
+                  }}
                 >
-                  {value[0].toUpperCase() + value.slice(1)}
+                  {value === "all"
+                    ? "All trades"
+                    : value === "rejected"
+                      ? "Rejected"
+                      : "Active"}
                 </button>
               ))}
             </div>
@@ -105,7 +123,7 @@ export default function Trades({ user, selectedId }) {
                 aria-current={selected?.id === deal.id ? "page" : undefined}
                 className={`trade-item ${selected?.id === deal.id ? "selected" : ""}`}
               >
-                <Photo src={deal.imageUrl} alt="" />
+                <Photo src={deal.imageUrl} category={deal.category} alt="" />
                 <div>
                   <strong>{deal.title}</strong>
                   <small>

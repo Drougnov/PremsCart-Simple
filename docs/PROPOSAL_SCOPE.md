@@ -27,7 +27,7 @@ The supplied ten-page proposal is the source of scope. The long manual and previ
 - The buyer sends an offer to open a conversation. The conversation stays attached to that trade.
 - Messages refresh by polling; there are no WebSockets, presence, read receipts, attachments, or typing indicators.
 - Pickup details are agreed in chat and recorded by the seller. Either person can cancel before handover confirmation.
-- Both participants confirm after pickup time. No QR scanner, expiring tokens, or handoff service.
+- Both participants confirm after the physical exchange, before or after the scheduled pickup time. No QR scanner, expiring tokens, or handoff service.
 - No hard deletion of transactions, users, or listings. Administrators can hide listings and suspend accounts while keeping history.
 - Public profiles expose name, department, verification, and reputation; they do not expose email addresses.
 - Ratings use one score plus a detailed comment, rather than several score fields.

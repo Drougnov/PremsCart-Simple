@@ -4,6 +4,7 @@ import { build } from "esbuild";
 import { unlink } from "node:fs/promises";
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost/",
+  pretendToBeVisual: true,
 });
 for (const key of [
   "window",

@@ -1,15 +1,28 @@
+import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Badge, Empty, Icon, Loading, Notice } from "../components/UI";
 
 export default function Profile({ id }) {
+  const refreshTick = useRefreshTick();
   const [profile, setProfile] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
+    let active = true;
     api(`/community/profiles/${id}`)
-      .then(setProfile)
-      .catch((e) => setError(e.message));
-  }, [id]);
+      .then((data) => {
+        if (active) {
+          setProfile(data);
+          setError("");
+        }
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id, refreshTick]);
   if (error) return <Notice>{error}</Notice>;
   if (!profile) return <Loading label="Loading profile…" />;
   return (

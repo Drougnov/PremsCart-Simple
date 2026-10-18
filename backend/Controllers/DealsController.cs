@@ -26,6 +26,7 @@ public class DealsController : BaseController
             d.ListingId,
             title = d.Listing.Title,
             imageUrl = d.Listing.ImageUrl,
+            category = d.Listing.Category,
             d.BuyerId,
             viewerId = CurrentUserId,
             isSeller = d.Listing.SellerId == CurrentUserId,
@@ -56,8 +57,24 @@ public class DealsController : BaseController
             return BadRequest(new { error = "This item is unavailable." });
         if (!listing.Negotiable && input.Amount != listing.Price)
             return BadRequest(new { error = "This item has a fixed price." });
-        if (await db.Deals.AnyAsync(d => d.ListingId == listing.Id && d.BuyerId == CurrentUserId && d.Status == "Pending"))
-            return BadRequest(new { error = "You already have an offer. Open your trades to continue." });
+        var previous = await db.Deals.Where(d => d.ListingId == listing.Id && d.BuyerId == CurrentUserId)
+            .OrderByDescending(d => d.Id).FirstOrDefaultAsync();
+        if (previous != null)
+        {
+            if (previous.Status is "Accepted" or "Scheduled" or "Completed" or "Pending") return Ok(new { previous.Id });
+            previous.Status = "Pending";
+            previous.Amount = input.Amount;
+            previous.LastOfferById = CurrentUserId;
+            previous.BuyerDeleted = false;
+            previous.SellerDeleted = false;
+            previous.PickupLocation = null;
+            previous.PickupTime = null;
+            previous.BuyerConfirmed = previous.SellerConfirmed = false;
+            db.Messages.Add(new Message { DealId = previous.Id, SenderId = CurrentUserId,
+                Body = $"New offer in this conversation: ৳{input.Amount:0.##}." });
+            await db.SaveChangesAsync();
+            return Ok(new { previous.Id });
+        }
         var deal = new Deal
         {
             ListingId = listing.Id,
@@ -116,7 +133,7 @@ public class DealsController : BaseController
                 if (deal.Status is not ("Pending" or "Accepted" or "Scheduled") || deal.BuyerConfirmed || deal.SellerConfirmed)
                     return BadRequest(new { error = "This trade can no longer be cancelled." });
                 if (deal.Status is "Accepted" or "Scheduled") deal.Listing.Status = "Available";
-                deal.Status = "Cancelled";
+                deal.Status = pending && seller ? "Rejected" : "Cancelled";
                 break;
             case "schedule":
                 if (!seller)
@@ -167,8 +184,14 @@ public class DealsController : BaseController
         if (!seller && deal.BuyerId != CurrentUserId) return Forbid();
         if (deal.Status is not ("Completed" or "Cancelled" or "Rejected"))
             return BadRequest(new { error = "Cancel or complete this trade before deleting its conversation." });
-        if (seller) deal.SellerDeleted = true;
-        else deal.BuyerDeleted = true;
+        var conversation = await db.Deals.Where(d => d.ListingId == deal.ListingId && d.BuyerId == deal.BuyerId).ToListAsync();
+        if (conversation.Any(d => d.Status is "Pending" or "Accepted" or "Scheduled"))
+            return BadRequest(new { error = "Cancel or complete the active trade in this conversation first." });
+        foreach (var attempt in conversation)
+        {
+            if (seller) attempt.SellerDeleted = true;
+            else attempt.BuyerDeleted = true;
+        }
         await db.SaveChangesAsync();
         return Ok(new { message = "Trade and chat removed from your view." });
     }
@@ -177,7 +200,8 @@ public class DealsController : BaseController
     public async Task<IActionResult> Messages(int id)
     {
         if (!await CanOpen(id)) return Forbid();
-        return Ok(await db.Messages.Where(m => m.DealId == id).OrderBy(m => m.Id)
+        var deal = await db.Deals.FindAsync(id);
+        return Ok(await db.Messages.Where(m => m.Deal.ListingId == deal!.ListingId && m.Deal.BuyerId == deal.BuyerId).OrderBy(m => m.Id)
             .Select(m => new { m.Id, m.SenderId, m.Body, m.SentAt }).ToListAsync());
     }
 

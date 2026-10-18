@@ -158,7 +158,7 @@ public class ListingsController : BaseController
         if (!Categories.Contains(input.Category) || !Conditions.Contains(input.Condition)) return "Choose a valid category and condition.";
         if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Description)) return "Title and description are required.";
         if (!string.IsNullOrEmpty(input.ImageUrl) &&
-            !System.Text.RegularExpressions.Regex.IsMatch(input.ImageUrl, @"^(/uploads/(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg)|/images/(books|electronics|stationery|parts|other)\.(svg|jpg))$") &&
+            !System.Text.RegularExpressions.Regex.IsMatch(input.ImageUrl, @"^(/uploads/(?:[a-f0-9]{32}|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})\.(png|jpg)|/images/(books|electronics|stationery|parts|other)\.(svg|jpg)|/images/demo/(laptop|headphones|watch|bag|keyboard|mouse|bottle|chair)\.jpg)$") &&
             images?.IsAllowedImageUrl(input.ImageUrl) != true)
             return "Upload a valid product image.";
         return null;
@@ -172,6 +172,6 @@ public class ListingsController : BaseController
         listing.Condition = input.Condition;
         listing.Price = input.Price;
         listing.Negotiable = input.Negotiable;
-        listing.ImageUrl = input.ImageUrl ?? "/images/other.jpg";
+        listing.ImageUrl = input.ImageUrl ?? "";
     }
 }

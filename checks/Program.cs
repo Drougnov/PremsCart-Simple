@@ -1,6 +1,8 @@
 // Optional controller checks using a temporary SQLite database.
 // This does NOT test PostgreSQL concurrency, HTTP cookies, SMTP, or browser layout.
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
@@ -59,7 +61,7 @@ Check(await deals.Offer(new(item.Id, 350)) is BadRequestObjectResult, "Seller ca
 As(deals, buyer);
 Check(await deals.Offer(new(item.Id, 350)) is OkObjectResult, "Buyer sends offer");
 var deal = await db.Deals.SingleAsync();
-Check(await deals.Offer(new(item.Id, 350)) is BadRequestObjectResult, "Duplicate pending offer blocked");
+Check(await deals.Offer(new(item.Id, 350)) is OkObjectResult && await db.Deals.CountAsync() == 1, "Duplicate offer returns existing conversation");
 Check(await deals.Act(deal.Id, Action("accept")) is BadRequestObjectResult, "Cannot accept own offer");
 As(deals, admin);
 Check(await deals.Messages(deal.Id) is ForbidResult, "Non-participant cannot read chat");
@@ -76,14 +78,11 @@ Check(await deals.Act(deal.Id, Action("schedule", location: "Library", time: Dat
 As(deals, seller);
 Check(await deals.Act(deal.Id, Action("schedule", location: "Elsewhere", time: DateTime.UtcNow.AddHours(1))) is BadRequestObjectResult, "Only campus pickup locations allowed");
 Check(await deals.Act(deal.Id, Action("schedule", location: "Library", time: DateTime.UtcNow.AddHours(1))) is OkObjectResult, "Seller schedules pickup");
-Check(await deals.Act(deal.Id, Action("complete")) is BadRequestObjectResult, "Early handover blocked");
-// Move this test fixture's clock-dependent field to the past. The app has no bypass.
-deal.PickupTime = DateTime.UtcNow.AddMinutes(-1);
-await db.SaveChangesAsync();
-Check(await deals.Act(deal.Id, Action("complete")) is OkObjectResult && deal.Status == "Scheduled", "One confirmation does not complete trade");
+Check(deal.PickupTime > DateTime.UtcNow, "Pickup is still in the future during both confirmations");
+Check(await deals.Act(deal.Id, Action("complete")) is OkObjectResult && deal.Status == "Scheduled", "Early first confirmation does not complete trade");
 Check(await deals.Act(deal.Id, Action("cancel")) is BadRequestObjectResult, "Cannot cancel after handover confirmation");
 As(deals, buyer);
-Check(await deals.Act(deal.Id, Action("complete")) is OkObjectResult && item.Status == "Sold", "Both confirmations complete trade");
+Check(await deals.Act(deal.Id, Action("complete")) is OkObjectResult && item.Status == "Sold", "Both early confirmations complete trade");
 Check(await deals.Act(deal.Id, Action("complete")) is BadRequestObjectResult, "Completed trade cannot be completed again");
 As(community, buyer);
 Check(await community.Review(new(deal.Id, 5, "Clear communication and on-time pickup.")) is OkObjectResult, "Buyer reviews seller");
@@ -127,6 +126,12 @@ var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Diction
 }).Build();
 var passwords = new PasswordHasher<User>();
 var auth = new AuthController(db, passwords, new EmailService(configuration), configuration);
+var services = new ServiceCollection();
+services.AddLogging();
+services.AddDataProtection();
+services.AddAuthentication("Cookies").AddCookie("Cookies");
+using var provider = services.BuildServiceProvider();
+auth.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { RequestServices = provider } };
 Check(await auth.Register(new("Invalid Student", "someone@example.com", "Campus123!", "CSE")) is BadRequestObjectResult,
     "Registration rejects non-university email");
 var unverified = new User
@@ -153,6 +158,8 @@ unverified.VerificationAttempts = 0;
 await db.SaveChangesAsync();
 Check(await auth.Verify(new(unverified.Email, "123456")) is OkObjectResult && unverified.IsVerified,
     "Correct unexpired code verifies user");
+Check(auth.Response.Headers.SetCookie.ToString().Contains(".AspNetCore.Cookies"),
+    "Verification issues a real authentication cookie");
 Check(await auth.Verify(new(unverified.Email, "123456")) is BadRequestObjectResult,
     "Verification code cannot be reused");
 Check(await auth.Login(new(unverified.Email, "wrong-password")) is UnauthorizedObjectResult,
@@ -220,4 +227,72 @@ As(deals, buyer);
 var buyerTrades = System.Text.Json.JsonSerializer.Serialize(((OkObjectResult)await deals.List()).Value);
 Check(buyerTrades.Contains("\"isSeller\":false"), "Trade response explicitly identifies the buyer");
 
+
+As(deals, admin);
+Check(await deals.Delete(deal.Id) is ForbidResult, "Outsider cannot delete a trade");
+As(deals, buyer);
+Check(await deals.Delete(deal.Id) is OkObjectResult && deal.BuyerDeleted && !deal.SellerDeleted,
+    "Delete is scoped to the requesting participant");
+Check(await deals.Messages(deal.Id) is ForbidResult, "Deleted conversation cannot be opened by that participant");
+Check(await deals.Send(deal.Id, new("Hidden chat")) is ForbidResult, "Deleted conversation cannot receive messages from that participant");
+var remainingBuyer = System.Text.Json.JsonSerializer.Serialize(((OkObjectResult)await deals.List()).Value);
+Check(!remainingBuyer.Contains("\"Id\":" + deal.Id + ","), "Deleted trade disappears from buyer list");
+As(deals, seller);
+Check(await deals.Messages(deal.Id) is OkObjectResult, "Other participant keeps their conversation");
+Check(await db.Reviews.CountAsync(r => r.DealId == deal.Id) == 2 && await db.Deals.AnyAsync(d => d.Id == deal.Id),
+    "Deletion preserves completed transaction and both reviews");
+As(community, buyer);
+Check(await community.Profile(admin.Id) is NotFoundResult, "Admin has no public student profile");
+As(deals, buyer);
+await deals.Offer(new(fixedItem.Id, fixedItem.Price));
+var activeDeal = await db.Deals.SingleAsync(d => d.ListingId == fixedItem.Id && d.Status == "Pending");
+Check(await deals.Delete(activeDeal.Id) is BadRequestObjectResult, "Active transaction cannot be hidden before cancellation");
+context.User = new ClaimsPrincipal(new ClaimsIdentity(new[] {
+    new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()), new Claim(ClaimTypes.Role, "Admin") }, "check"));
+context.Request.Headers["X-PremsCart-User"] = admin.Id.ToString();
+foreach (var path in new[] { "/api/deals", "/api/community/reviews", "/api/listings/upload" })
+{
+    context.Request.Path = path;
+    context.Request.Method = "POST";
+    reachedAction = false;
+    await SessionGuard.CheckAsync(context, _ => { reachedAction = true; return Task.CompletedTask; });
+    Check(context.Response.StatusCode == 403 && !reachedAction, "Admin student action blocked: " + path);
+}
+
+As(deals, buyer);
+Check(await deals.Act(activeDeal.Id, Action("cancel")) is OkObjectResult, "Buyer cancels attempt before retry");
+var attemptsBefore = await db.Deals.CountAsync();
+Check(await deals.Offer(new(fixedItem.Id, fixedItem.Price)) is OkObjectResult && await db.Deals.CountAsync() == attemptsBefore,
+    "Retry reopens same buyer/item attempt without creating another trade");
+Check(activeDeal.Status == "Pending" && !activeDeal.BuyerDeleted && !activeDeal.SellerDeleted, "Reopened conversation is visible to both participants");
+As(deals, seller);
+Check(await deals.Act(activeDeal.Id, Action("cancel")) is OkObjectResult && activeDeal.Status == "Rejected",
+    "Seller cancellation of pending offer appears in Rejected tab");
+var messagesBefore = await db.Messages.CountAsync(m => m.DealId == activeDeal.Id);
+As(deals, buyer);
+await deals.Offer(new(fixedItem.Id, fixedItem.Price));
+Check(await db.Messages.CountAsync(m => m.DealId == activeDeal.Id) == messagesBefore + 1, "Reoffer preserves prior messages");
+
+auth.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] {
+    new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()), new Claim(ClaimTypes.Role, "Admin") }, "check"));
+Check(await auth.UpdateAccount(new("Updated Admin", "wrong", null, null)) is BadRequestObjectResult,
+    "Admin changes require current password");
+Check(await auth.UpdateAccount(new("Updated Admin", "Campus123!", "NewPassword!123", "Mismatch")) is BadRequestObjectResult,
+    "Admin password confirmation must match");
+Check(await auth.UpdateAccount(new("Updated Admin", "Campus123!", "NewPassword!123", "NewPassword!123")) is OkObjectResult,
+    "Admin can change name and password");
+Check(admin.Name == "Updated Admin" && admin.SessionVersion == 1 && passwords.VerifyHashedPassword(admin, admin.PasswordHash, "NewPassword!123") != PasswordVerificationResult.Failed,
+    "Password is hashed and prior session version is revoked");
+auth.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, buyer.Id.ToString()) }, "check"));
+Check(await auth.UpdateAccount(new("Student", "Campus123!", null, null)) is ForbidResult, "Student cannot use admin account settings");
+await DemoCatalog.CreateAsync(db, passwords);
+var demo = await db.Users.SingleAsync(u => u.Email == DemoCatalog.Email);
+Check(demo.IsVerified && demo.Role == "Student" && passwords.VerifyHashedPassword(demo, demo.PasswordHash, DemoCatalog.Password) != PasswordVerificationResult.Failed,
+    "Demo seller created with working hashed credentials");
+Check(await db.Listings.CountAsync(l => l.SellerId == demo.Id) == 24, "24 varied demo items inserted in database");
+await DemoCatalog.CreateAsync(db, passwords);
+Check(await db.Listings.CountAsync(l => l.SellerId == demo.Id) == 24, "Repeated demo seed creates no duplicate items");
+As(listings, seller);
+await listings.Create(new("Without photo", "A valid no-photo item description", "Books", "Good", 100, true, null));
+Check((await db.Listings.SingleAsync(l => l.Title == "Without photo")).ImageUrl == "", "No-photo posts retain an empty photo for category placeholder");
 Console.WriteLine($"\n{passed} controller checks passed. SQLite test fixture only; see docs/TEST_RESULTS.md.");

@@ -41,6 +41,8 @@ export async function api(path, options = {}) {
     error.status = response.status;
     throw error;
   }
+  if (options.method && options.method.toUpperCase() !== "GET")
+    window.dispatchEvent(new Event("premscart-data-change"));
   return data;
 }
 

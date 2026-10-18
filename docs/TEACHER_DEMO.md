@@ -52,7 +52,7 @@ Show how a button/form sends JSON, how the controller checks the rules, and wher
 
 ### 7. Complete and review — 1 minute
 
-At the pickup time, the confirmation button unlocks automatically. Use **Refresh trades** to load the other person’s latest status.
+Once pickup is arranged, both people may confirm the physical exchange even before the scheduled time. Their status updates automatically; no manual refresh is needed.
 
 As seller, confirm handover. The trade still waits for the buyer.
 

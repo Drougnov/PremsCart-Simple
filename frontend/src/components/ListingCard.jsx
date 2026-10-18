@@ -5,7 +5,12 @@ export default function ListingCard({ item, manage = false }) {
   return (
     <article className="listing-card">
       <a className="card-image" href={`#/item/${item.id}`}>
-        <Photo src={item.imageUrl} alt={item.title} loading="lazy" />
+        <Photo
+          src={item.imageUrl}
+          alt={item.title}
+          category={item.category}
+          loading="lazy"
+        />
         <span className="image-label">{item.condition}</span>
       </a>
       <div className="card-body">
@@ -19,9 +24,7 @@ export default function ListingCard({ item, manage = false }) {
         <strong className="price">{money(item.price)}</strong>
         <div className="card-footer">
           <span>{item.sellerName}</span>
-          <span className="verified">
-            <Icon name="shield" size={12} /> Campus
-          </span>
+          <Badge muted>{item.status}</Badge>
         </div>
         {manage && (
           <div className="row">

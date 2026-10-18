@@ -62,7 +62,7 @@ export default function Chat({ dealId, user, otherName }) {
         </span>
         <div>
           <h3>{otherName || "Your conversation"}</h3>
-          <small>Private trade conversation · refreshes automatically</small>
+          <small>Private trade conversation</small>
         </div>
       </div>
       <Notice>{error}</Notice>

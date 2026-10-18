@@ -10,8 +10,9 @@ import {
 } from "../components/UI";
 
 export default function ListingForm({ id, user }) {
+  const [photoCategory, setPhotoCategory] = useState("Books");
   const [item, setItem] = useState(null);
-  const [image, setImage] = useState("/images/other.jpg");
+  const [image, setImage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function ListingForm({ id, user }) {
       api(`/listings/${id}`)
         .then((data) => {
           setItem(data);
+          setPhotoCategory(data.category);
           setImage(data.imageUrl);
         })
         .catch((e) => setError(e.message));
@@ -115,7 +117,11 @@ export default function ListingForm({ id, user }) {
             <div className="two-columns">
               <label>
                 Category
-                <select name="category" defaultValue={item?.category}>
+                <select
+                  name="category"
+                  onChange={(e) => setPhotoCategory(e.target.value)}
+                  defaultValue={item?.category}
+                >
                   {categories.map((c) => (
                     <option key={c}>{c}</option>
                   ))}
@@ -170,7 +176,11 @@ export default function ListingForm({ id, user }) {
         <aside className="panel upload-panel">
           <span className="eyebrow">02 / THE FIRST IMPRESSION</span>
           <h2>Your item photo</h2>
-          <Photo src={image} alt="Selected item preview" />
+          <Photo
+            src={image}
+            category={photoCategory}
+            alt="Selected item preview"
+          />
           <label className="upload-label">
             <span>
               <Icon name="camera" size={17} />{" "}

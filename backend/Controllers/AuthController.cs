@@ -125,10 +125,40 @@ public class AuthController : BaseController
 
     private async Task<IActionResult> SignIn(User user)
     {
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, user.Role) };
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, user.Role), new Claim("session_version", user.SessionVersion.ToString()) };
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));
         return Ok(user);
+    }
+
+    [Authorize(Roles = "Admin"), HttpPut("account")]
+    public async Task<IActionResult> UpdateAccount(AccountRequest input)
+    {
+        var user = await db.Users.FindAsync(CurrentUserId);
+        if (user == null || user.Role != "Admin") return Forbid();
+        if (user.LockedUntil > DateTime.UtcNow)
+            return StatusCode(429, new { error = "Too many attempts. Try again in 15 minutes." });
+        if (hasher.VerifyHashedPassword(user, user.PasswordHash, input.CurrentPassword) == PasswordVerificationResult.Failed)
+        {
+            user.LoginAttempts++;
+            if (user.LoginAttempts >= 5) { user.LockedUntil = DateTime.UtcNow.AddMinutes(15); user.LoginAttempts = 0; }
+            await db.SaveChangesAsync();
+            return BadRequest(new { error = "Current password is incorrect." });
+        }
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Trim().Length < 2)
+            return BadRequest(new { error = "Enter your name." });
+        if (!string.IsNullOrEmpty(input.NewPassword))
+        {
+            if (input.NewPassword.Length < 8 || input.NewPassword.Length > 100 || input.NewPassword != input.ConfirmPassword)
+                return BadRequest(new { error = "New passwords must match and contain 8–100 characters." });
+            user.PasswordHash = hasher.HashPassword(user, input.NewPassword);
+            user.SessionVersion++;
+        }
+        user.Name = input.Name.Trim();
+        user.LoginAttempts = 0;
+        user.LockedUntil = null;
+        await db.SaveChangesAsync();
+        return await SignIn(user);
     }
 
     [HttpGet("me")]

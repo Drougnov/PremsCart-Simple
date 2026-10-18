@@ -27,9 +27,11 @@ export default function Auth({ onLogin, returnTo }) {
       const user = await api("/auth/login", { method: "POST", body: values });
       onLogin(user);
       location.hash =
-        returnTo?.startsWith("/") && !returnTo.startsWith("//")
-          ? returnTo
-          : "/";
+        user.role === "Admin"
+          ? "/admin"
+          : returnTo?.startsWith("/") && !returnTo.startsWith("//")
+            ? returnTo
+            : "/";
     } else if (mode === "register") {
       // Keep the address available if SMTP is not started yet.
       setEmail(values.email);
@@ -37,9 +39,9 @@ export default function Auth({ onLogin, returnTo }) {
       setMode("verify");
       setMessage("Code sent. Check your university email inbox.");
     } else {
-      await api("/auth/verify", { method: "POST", body: values });
-      setMode("login");
-      setMessage("Your email is verified. Sign in to get started.");
+      const user = await api("/auth/verify", { method: "POST", body: values });
+      onLogin(user);
+      location.hash = user.role === "Admin" ? "/admin" : `/profile/${user.id}`;
     }
   }
   async function resend() {
