@@ -123,17 +123,21 @@ export default function Trades({ user, selectedId }) {
                 aria-current={selected?.id === deal.id ? "page" : undefined}
                 className={`trade-item ${selected?.id === deal.id ? "selected" : ""}`}
               >
-                <Photo src={deal.imageUrl} category={deal.category} alt="" />
-                <div>
-                  <strong>{deal.title}</strong>
+                <span className="trade-thumbnail">
+                  <Photo src={deal.imageUrl} category={deal.category} alt="" />
+                </span>
+                <div className="trade-card-copy">
+                  <strong title={deal.title}>{deal.title}</strong>
                   <small>
                     {user.id === deal.buyerId
                       ? deal.sellerName
                       : deal.buyerName}
                   </small>
-                  <Badge muted>{deal.status}</Badge>
+                  <div className="trade-card-footer">
+                    <Badge muted>{deal.status}</Badge>
+                    <span className="trade-price">{money(deal.amount)}</span>
+                  </div>
                 </div>
-                <span>{money(deal.amount)}</span>
               </a>
             ))}
           </aside>

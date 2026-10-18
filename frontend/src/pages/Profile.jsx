@@ -41,12 +41,14 @@ export default function Profile({ id, user }) {
         <span className="eyebrow">YOUR CAMPUS COMMUNITY</span>
         <h1>{profile.name}</h1>
         <p>{profile.department}</p>
-        {user?.id === profile.id && (
-          <a className="button secondary" href="#/account">
-            Edit profile
-          </a>
-        )}
-        {profile.isVerified && <Badge>✓ University email verified</Badge>}
+        <div className="profile-actions">
+          {user?.id === profile.id && (
+            <a className="button secondary" href="#/account">
+              Edit profile
+            </a>
+          )}
+          {profile.isVerified && <Badge>✓ University email verified</Badge>}
+        </div>
         <div className="profile-stats">
           <div>
             <strong>{profile.completed}</strong>

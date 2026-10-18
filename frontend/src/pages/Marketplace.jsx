@@ -254,10 +254,14 @@ export default function Marketplace({ mine, user }) {
               >
                 Previous
               </button>
-              <span aria-live="polite">
-                Page {page} of {Math.ceil(total / pageSize)} ·{" "}
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}{" "}
-                of {total} items
+              <span className="pagination-summary" aria-live="polite">
+                <span className="pagination-page">
+                  Page <strong>{page}</strong> of {Math.ceil(total / pageSize)}
+                </span>
+                <small>
+                  {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}{" "}
+                  of {total} items
+                </small>
               </span>
               <button
                 className="button secondary"

@@ -17,53 +17,61 @@ export default function AdminAccount({ user, onUpdate }) {
       <Notice success>{saved}</Notice>
       <div className="panel">
         <h2>Personal information</h2>
-        <span className="avatar large">
-          {avatar ? <img src={avatar} alt="Profile preview" /> : user.name[0]}
-        </span>
-        <label>
-          Profile photo
-          <input
-            type="file"
-            accept="image/png,image/jpeg"
-            disabled={uploading}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setUploadError("");
-              if (file.size > 2000000) {
-                setUploadError("Choose a photo smaller than 2 MB.");
-                return;
-              }
-              setUploading(true);
-              try {
-                const body = new FormData();
-                body.append("file", file);
-                const result = await api("/auth/photo", {
-                  method: "POST",
-                  body,
-                });
-                setAvatar(result.imageUrl);
-              } catch (e) {
-                setUploadError(e.message);
-              } finally {
-                setUploading(false);
-              }
-            }}
-          />
-        </label>
-        <small>
-          PNG or JPEG, up to 2 MB. Save your profile to apply the photo.
-        </small>
-        {avatar && (
-          <button
-            type="button"
-            className="text-button"
-            disabled={uploading}
-            onClick={() => setAvatar("")}
-          >
-            Remove photo
-          </button>
-        )}
+        <div className="profile-photo-editor">
+          <span className="avatar large">
+            {avatar ? <img src={avatar} alt="Profile preview" /> : user.name[0]}
+          </span>
+          <div className="profile-photo-controls">
+            <label className="photo-upload-button">
+              <span aria-hidden="true">
+                {uploading ? "Uploading…" : "Change photo"}
+              </span>
+              <input
+                type="file"
+                aria-label="Profile photo"
+                accept="image/png,image/jpeg"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadError("");
+                  if (file.size > 2000000) {
+                    setUploadError("Choose a photo smaller than 2 MB.");
+                    return;
+                  }
+                  setUploading(true);
+                  try {
+                    const body = new FormData();
+                    body.append("file", file);
+                    const result = await api("/auth/photo", {
+                      method: "POST",
+                      body,
+                    });
+                    setAvatar(result.imageUrl);
+                  } catch (e) {
+                    setUploadError(e.message);
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </label>
+            <small>PNG or JPEG · Maximum 2 MB</small>
+            {avatar && (
+              <button
+                type="button"
+                className="text-button"
+                disabled={uploading}
+                onClick={() => setAvatar("")}
+              >
+                Remove photo
+              </button>
+            )}
+            <small className="photo-save-hint">
+              Save your profile to apply photo changes.
+            </small>
+          </div>
+        </div>
         <Notice>{uploadError}</Notice>
         <ActionForm
           label={uploading ? "Uploading photo…" : "Save profile"}
