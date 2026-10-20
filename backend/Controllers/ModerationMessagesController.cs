@@ -16,13 +16,14 @@ public class ModerationMessagesController(AppDbContext db) : BaseController
     [HttpPost("{id:int}/reply")]
     public async Task<IActionResult> Reply(int id, MessageRequest input)
     {
-        var original = await db.ModerationMessages.Include(m => m.Sender).SingleOrDefaultAsync(m => m.Id == id);
+        var original = await db.ModerationMessages.Include(m => m.Sender).Include(m => m.Recipient).SingleOrDefaultAsync(m => m.Id == id);
         if (original == null) return NotFound();
-        if (original.RecipientId != CurrentUserId) return Forbid();
-        if (!IsAdmin && original.Sender.Role != "Admin") return Forbid();
+        if (original.RecipientId != CurrentUserId && original.SenderId != CurrentUserId) return Forbid();
+        var other = original.SenderId == CurrentUserId ? original.Recipient : original.Sender;
+        if (!IsAdmin && other.Role != "Admin") return Forbid();
         if (string.IsNullOrWhiteSpace(input.Body)) return BadRequest(new { error = "Write a message." });
         db.ModerationMessages.Add(new ModerationMessage { SenderId = CurrentUserId,
-            RecipientId = original.SenderId, ListingId = original.ListingId, Body = input.Body.Trim() });
+            RecipientId = other.Id, ListingId = original.ListingId, Body = input.Body.Trim() });
         await db.SaveChangesAsync();
         return Ok(new { message = "Reply sent." });
     }

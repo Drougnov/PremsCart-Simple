@@ -166,14 +166,6 @@ export default function App() {
             PremsCart<span className="brand-dot">.</span>
           </a>
           <nav aria-label="Main navigation">
-            {user && (
-              <a
-                className={page === "messages" ? "active" : ""}
-                href="#/messages"
-              >
-                Inbox
-              </a>
-            )}
             {user?.role !== "Admin" && (
               <a className={!page ? "active" : ""} href="#/">
                 Marketplace
@@ -193,11 +185,19 @@ export default function App() {
               </>
             )}
             {user?.role === "Admin" && (
-              <a href="#/admin/account">Account settings</a>
+              <a className={route === "/admin/account" ? "active" : ""} aria-current={route === "/admin/account" ? "page" : undefined} href="#/admin/account">Account settings</a>
             )}
             {user?.role === "Admin" && (
-              <a className={page === "admin" ? "active" : ""} href="#/admin">
+              <a className={route === "/admin" ? "active" : ""} aria-current={route === "/admin" ? "page" : undefined} href="#/admin">
                 Admin
+              </a>
+            )}
+            {user && (
+              <a
+                className={page === "messages" ? "active" : ""}
+                href="#/messages"
+              >
+                Inbox
               </a>
             )}
           </nav>

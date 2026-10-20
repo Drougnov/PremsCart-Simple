@@ -15,6 +15,8 @@ import {
 export default function Admin() {
   const refreshTick = useRefreshTick();
   const [data, setData] = useState(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [tab, setTab] = useState("listings");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,6 +69,11 @@ export default function Admin() {
     data?.users.filter((member) =>
       matching(`${member.name} ${member.email}`),
     ) || [];
+  useEffect(() => { setPage(1); }, [tab, query, pendingOnly]);
+  const total = tab === "listings" ? visibleItems.length : tab === "users" ? visibleUsers.length : (data?.reports.length || 0);
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pages);
+  const pageItems = (items) => items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   return (
     <>
       <PageTitle eyebrow="COMMUNITY CARE" title="Administration">
@@ -210,7 +217,7 @@ export default function Admin() {
             </Empty>
           )}
           {tab === "listings" &&
-            visibleItems.map((item) => (
+            pageItems(visibleItems).map((item) => (
               <article className="panel moderation-item" key={item.id}>
                 <Photo src={item.imageUrl} alt={item.title} />
                 <div className="grow">
@@ -269,7 +276,7 @@ export default function Admin() {
             (!data.reports.length ? (
               <Empty title="All clear">There are no reports to review.</Empty>
             ) : (
-              data.reports.map((report) => (
+              pageItems(data.reports).map((report) => (
                 <article className="panel" key={report.id}>
                   <div className="row">
                     <h3>{report.title}</h3>
@@ -326,7 +333,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleUsers.map((member) => (
+                  {pageItems(visibleUsers).map((member) => (
                     <tr key={member.id}>
                       <td>
                         <strong>{member.name}</strong>
@@ -372,6 +379,11 @@ export default function Admin() {
               </table>
             </div>
           )}
+          {total > pageSize && <nav className="pagination" aria-label="Admin pages">
+            <button className="button secondary small" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
+            <span className="pagination-summary" aria-live="polite"><span className="pagination-page">Page {currentPage} of {pages}</span><small>{total} {tab === "listings" ? "items" : tab}</small></span>
+            <button className="button secondary small" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Next</button>
+          </nav>}
         </>
       )}
     </>

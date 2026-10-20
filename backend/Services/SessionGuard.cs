@@ -27,7 +27,8 @@ public static class SessionGuard
         var path = context.Request.Path;
         if (context.User.IsInRole("Admin") &&
             (path.StartsWithSegments("/api/deals") ||
-             path.StartsWithSegments("/api/community") ||
+             (path.StartsWithSegments("/api/community") &&
+              !(context.Request.Method == "GET" && path.StartsWithSegments("/api/community/profiles"))) ||
              (path.StartsWithSegments("/api/listings") &&
               (context.Request.Method != "GET" || context.Request.Query["mine"] == "true"))))
         {
