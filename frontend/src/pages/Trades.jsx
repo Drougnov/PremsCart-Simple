@@ -93,7 +93,7 @@ export default function Trades({ user, selectedId }) {
         </Empty>
       ) : (
         <div className="trades-layout">
-          <aside className="trade-list" aria-label="Your trades">
+          <aside className="trade-sidebar" aria-label="Your trades">
             <div className="trade-filters" aria-label="Filter trades">
               {["all", "active", "rejected"].map((value) => (
                 <button
@@ -113,6 +113,7 @@ export default function Trades({ user, selectedId }) {
                 </button>
               ))}
             </div>
+            <div className="trade-list" tabIndex={0} role="region" aria-label="Trade conversations">
             {!visibleDeals.length && (
               <p className="subtle">No trades in this view.</p>
             )}
@@ -140,6 +141,7 @@ export default function Trades({ user, selectedId }) {
                 </div>
               </a>
             ))}
+            </div>
           </aside>
           {!selected && (
             <Empty title="Trade not found">

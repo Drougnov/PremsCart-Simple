@@ -1,3 +1,4 @@
+import DeleteItem from "../components/DeleteItem";
 import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useState } from "react";
 import { api, money } from "../api";
@@ -131,6 +132,7 @@ export default function ListingDetail({ id, user }) {
           </a>
           {user?.id === item.sellerId ? (
             <div className="notice success">
+              <DeleteItem id={item.id} onDeleted={() => { location.hash = "/mine"; }} />
               This is your item.{" "}
               {item.status === "Available" ? (
                 <a href={`#/edit/${item.id}`}>Edit your item</a>

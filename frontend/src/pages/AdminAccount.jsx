@@ -1,3 +1,4 @@
+import DepartmentSelect from "../components/DepartmentSelect";
 import { useState } from "react";
 import { api } from "../api";
 import { ActionForm, Notice, PageTitle } from "../components/UI";
@@ -99,12 +100,7 @@ export default function AdminAccount({ user, onUpdate }) {
           </label>
           <label>
             Department
-            <input
-              name="department"
-              defaultValue={user.department}
-              required
-              maxLength={80}
-            />
+            <DepartmentSelect value={user.department} admin={user.role === "Admin"} />
           </label>
           <label>
             Email

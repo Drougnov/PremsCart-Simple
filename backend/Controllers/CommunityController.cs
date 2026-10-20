@@ -20,7 +20,7 @@ public class CommunityController : BaseController
     public async Task<IActionResult> Profile(int id)
     {
         var user = await db.Users.FindAsync(id);
-        if (user == null || user.IsSuspended || user.Role == "Admin") return NotFound();
+        if (user == null || ((user.IsSuspended || user.Role == "Admin") && !IsAdmin)) return NotFound();
         var reviews = await db.Reviews.Where(r => r.RevieweeId == id).OrderByDescending(r => r.CreatedAt)
             .Select(r => new { r.Rating, r.Comment, author = r.Reviewer.Name, r.CreatedAt }).ToListAsync();
         var completed = await db.Deals.CountAsync(d => d.Status == "Completed" && (d.BuyerId == id || d.Listing.SellerId == id));
@@ -32,6 +32,9 @@ public class CommunityController : BaseController
             user.AvatarUrl,
             user.IsVerified,
             user.JoinedAt,
+            email = IsAdmin ? user.Email : null,
+            isSuspended = IsAdmin && user.IsSuspended,
+            listings = IsAdmin ? await db.Listings.Where(l => l.SellerId == id).Select(l => new { l.Id, l.Title, l.Status, l.IsHidden, l.IsApproved, l.IsDeleted }).ToListAsync() : null,
             completed,
             rating = reviews.Count == 0 ? 0 : reviews.Average(r => r.Rating),
             reviews
@@ -63,7 +66,7 @@ public class CommunityController : BaseController
     [HttpPost("reports")]
     public async Task<IActionResult> Report(ReportRequest input)
     {
-        if (!await db.Listings.AnyAsync(l => l.Id == input.ListingId && l.IsApproved && !l.IsHidden)) return NotFound();
+        if (!await db.Listings.AnyAsync(l => l.Id == input.ListingId && !l.IsDeleted && l.IsApproved && !l.IsHidden)) return NotFound();
         if (string.IsNullOrWhiteSpace(input.Reason)) return BadRequest(new { error = "Please describe the issue." });
         db.Reports.Add(new Report { ListingId = input.ListingId, ReporterId = CurrentUserId, Reason = input.Reason.Trim() });
         await db.SaveChangesAsync();

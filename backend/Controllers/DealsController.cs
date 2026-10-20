@@ -48,12 +48,13 @@ public class DealsController : BaseController
     [HttpPost]
     public async Task<IActionResult> Offer(OfferRequest input)
     {
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         if (input.Amount != decimal.Truncate(input.Amount))
             return BadRequest(new { error = "Use whole taka only." });
         var listing = await db.Listings.Include(l => l.Seller).SingleOrDefaultAsync(l => l.Id == input.ListingId);
         if (listing == null) return NotFound();
         if (listing.SellerId == CurrentUserId) return BadRequest(new { error = "You cannot buy your own item." });
-        if (!listing.IsApproved || listing.IsHidden || listing.Status != "Available" || listing.Seller.IsSuspended)
+        if (listing.IsDeleted || !listing.IsApproved || listing.IsHidden || listing.Status != "Available" || listing.Seller.IsSuspended)
             return BadRequest(new { error = "This item is unavailable." });
         if (!listing.Negotiable && input.Amount != listing.Price)
             return BadRequest(new { error = "This item has a fixed price." });
@@ -73,6 +74,7 @@ public class DealsController : BaseController
             db.Messages.Add(new Message { DealId = previous.Id, SenderId = CurrentUserId,
                 Body = $"New offer in this conversation: ৳{input.Amount:0.##}." });
             await db.SaveChangesAsync();
+            await transaction.CommitAsync();
             return Ok(new { previous.Id });
         }
         var deal = new Deal
@@ -90,6 +92,7 @@ public class DealsController : BaseController
             Body = $"Offer sent: ৳{deal.Amount:0.##}."
         });
         await db.SaveChangesAsync();
+            await transaction.CommitAsync();
         return Ok(new { deal.Id });
     }
 

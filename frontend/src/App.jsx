@@ -1,3 +1,4 @@
+import ModerationInbox from "./pages/ModerationInbox";
 import { useEffect, useState } from "react";
 import { api, setSessionUser } from "./api";
 import { Icon, Loading, Notice } from "./components/UI";
@@ -74,7 +75,11 @@ export default function App() {
   }
   const [page, id] = route.split("?")[0].split("/").filter(Boolean);
   useEffect(() => {
-    if (user?.role === "Admin" && !["/admin", "/admin/account"].includes(route))
+    if (
+      user?.role === "Admin" &&
+      !["/admin", "/admin/account", "/messages"].includes(route) &&
+      !route.startsWith("/profile/")
+    )
       location.hash = "/admin";
   }, [user?.role, route]);
   const protectedPage = [
@@ -84,12 +89,17 @@ export default function App() {
     "trades",
     "admin",
     "account",
+    "messages",
   ].includes(page);
   let content;
   if (loading) content = <Loading label="Opening your campus marketplace…" />;
   else if (user?.role === "Admin")
     content =
-      route === "/admin/account" ? (
+      page === "profile" ? (
+        <Profile id={id} user={user} />
+      ) : page === "messages" ? (
+        <ModerationInbox user={user} />
+      ) : route === "/admin/account" ? (
         <AdminAccount user={user} onUpdate={updateUser} />
       ) : (
         <Admin />
@@ -110,6 +120,7 @@ export default function App() {
   else if (page === "sell" || page === "edit")
     content = <ListingForm id={page === "edit" ? id : null} user={user} />;
   else if (page === "trades") content = <Trades user={user} selectedId={id} />;
+  else if (page === "messages") content = <ModerationInbox user={user} />;
   else if (page === "account")
     content = <AdminAccount user={user} onUpdate={updateUser} />;
   else if (page === "profile") content = <Profile id={id} user={user} />;
@@ -155,6 +166,14 @@ export default function App() {
             PremsCart<span className="brand-dot">.</span>
           </a>
           <nav aria-label="Main navigation">
+            {user && (
+              <a
+                className={page === "messages" ? "active" : ""}
+                href="#/messages"
+              >
+                Inbox
+              </a>
+            )}
             {user?.role !== "Admin" && (
               <a className={!page ? "active" : ""} href="#/">
                 Marketplace

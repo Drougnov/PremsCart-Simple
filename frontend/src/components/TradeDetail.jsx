@@ -329,6 +329,7 @@ export default function TradeDetail({ deal, user, refresh }) {
           ))}
       </div>
       <Chat
+        listingId={deal.listingId}
         dealId={deal.id}
         user={user}
         otherName={seller ? deal.buyerName : deal.sellerName}

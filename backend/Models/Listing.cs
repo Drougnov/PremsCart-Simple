@@ -17,6 +17,7 @@ public class Listing
     // Approval and availability are separate: hiding a listing never cancels a deal.
     public bool IsApproved { get; set; }
     public bool IsHidden { get; set; }
+    public bool IsDeleted { get; set; }
     public string Status { get; set; } = "Available";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

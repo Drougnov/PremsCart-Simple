@@ -2,6 +2,7 @@ import { useRefreshTick } from "../useRefreshTick";
 import { useEffect, useRef, useState } from "react";
 import { api, money } from "../api";
 import {
+  ActionForm,
   Badge,
   Empty,
   Icon,
@@ -20,6 +21,7 @@ export default function Admin() {
   const [query, setQuery] = useState("");
   const [pendingOnly, setPendingOnly] = useState(false);
   const [confirmation, setConfirmation] = useState(null);
+  const [compose, setCompose] = useState(null);
   const [message, setMessage] = useState("");
   const requestNumber = useRef(0);
   async function load() {
@@ -73,6 +75,33 @@ export default function Admin() {
       </PageTitle>
       <Notice>{error}</Notice>
       <Notice success>{message}</Notice>
+      {compose && (
+        <section className="panel" aria-label="Message item owner">
+          <h2>Message owner: {compose.title}</h2>
+          <p>
+            Discuss this item before approving, hiding, or resolving its report.
+          </p>
+          <ActionForm
+            label="Send message"
+            onSubmit={async (values) => {
+              await api(`/admin/listings/${compose.id}/message`, {
+                method: "POST",
+                body: values,
+              });
+              setCompose(null);
+              setMessage("Message sent. Replies will appear in your inbox.");
+            }}
+          >
+            <label>
+              Message
+              <textarea name="body" required maxLength={1500} />
+            </label>
+          </ActionForm>
+          <button className="text-button" onClick={() => setCompose(null)}>
+            Cancel
+          </button>
+        </section>
+      )}
       {confirmation && (
         <div
           className="confirm-box"
@@ -202,6 +231,15 @@ export default function Admin() {
                   </div>
                 </div>
                 <div className="stack">
+                  <button
+                    className="button secondary small"
+                    onClick={() => {
+                      setCompose({ id: item.id, title: item.title });
+                      window.scrollTo(0, 0);
+                    }}
+                  >
+                    Message owner
+                  </button>
                   {!item.isApproved && (
                     <button
                       className="button small"
@@ -241,14 +279,26 @@ export default function Admin() {
                   </div>
                   <p>{report.reason}</p>
                   <small>Reported by {report.reporter}</small>
+                  <div className="row actions">
+                    <button
+                      className="button secondary small"
+                      onClick={() => {
+                        setCompose({
+                          id: report.listingId,
+                          title: report.title,
+                        });
+                        window.scrollTo(0, 0);
+                      }}
+                    >
+                      Message item owner
+                    </button>
+                  </div>
                   {!report.isResolved && (
                     <div className="row actions">
                       <button
                         className="button secondary small"
                         disabled={busy}
-                        onClick={() =>
-                          act("listings", report.listingId, "hide")
-                        }
+                        onClick={() => act("reports", report.id, "hide")}
                       >
                         Hide item
                       </button>
@@ -291,6 +341,12 @@ export default function Admin() {
                             : "Unverified"}
                       </td>
                       <td>
+                        <a
+                          className="button secondary small"
+                          href={`#/profile/${member.id}`}
+                        >
+                          View profile
+                        </a>
                         {member.role !== "Admin" && (
                           <button
                             className="button secondary small"

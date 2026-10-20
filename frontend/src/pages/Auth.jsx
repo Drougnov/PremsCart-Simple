@@ -1,3 +1,4 @@
+import DepartmentSelect from "../components/DepartmentSelect";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { ActionForm, Icon, Notice } from "../components/UI";
@@ -113,12 +114,7 @@ export default function Auth({ onLogin, returnTo }) {
               </label>
               <label>
                 Department
-                <input
-                  name="department"
-                  required
-                  maxLength="80"
-                  placeholder="Computer Science & Engineering"
-                />
+                <DepartmentSelect />
               </label>
             </>
           )}

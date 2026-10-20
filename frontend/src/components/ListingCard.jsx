@@ -1,3 +1,4 @@
+import DeleteItem from "./DeleteItem";
 import { money } from "../api";
 import { Badge, Icon, Photo } from "./UI";
 
@@ -23,7 +24,20 @@ export default function ListingCard({ item, manage = false }) {
         </a>
         <strong className="price">{money(item.price)}</strong>
         <div className="card-footer">
-          <span>{item.sellerName}</span>
+          <a href={`#/profile/${item.sellerId}`}>{item.sellerName}</a>
+          <a
+            className="owner-rating"
+            href={`#/profile/${item.sellerId}`}
+            aria-label={
+              item.sellerReviewCount
+                ? `Owner rating ${Number(item.sellerRating).toFixed(1)} out of 5, ${item.sellerReviewCount} reviews`
+                : "Owner has no reviews yet"
+            }
+          >
+            {item.sellerReviewCount
+              ? `★ ${Number(item.sellerRating).toFixed(1)} (${item.sellerReviewCount})`
+              : "No reviews yet"}
+          </a>
         </div>
         {manage && (
           <div className="row">
@@ -42,6 +56,7 @@ export default function ListingCard({ item, manage = false }) {
             )}
           </div>
         )}
+        {manage && <DeleteItem id={item.id} />}
       </div>
     </article>
   );

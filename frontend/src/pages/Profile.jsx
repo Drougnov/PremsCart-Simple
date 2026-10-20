@@ -27,8 +27,11 @@ export default function Profile({ id, user }) {
   if (!profile) return <Loading label="Loading profile…" />;
   return (
     <div className="profile-page">
-      <a className="back-link" href="#/">
-        ← Back to marketplace
+      <a className="back-link" href={user?.role === "Admin" ? "#/admin" : "#/"}>
+        ←{" "}
+        {user?.role === "Admin"
+          ? "Back to administration"
+          : "Back to marketplace"}
       </a>
       <section className="profile-header panel">
         <span className="avatar large">
@@ -41,6 +44,11 @@ export default function Profile({ id, user }) {
         <span className="eyebrow">YOUR CAMPUS COMMUNITY</span>
         <h1>{profile.name}</h1>
         <p>{profile.department}</p>
+        {user?.role === "Admin" && (
+          <p>
+            {profile.email} · {profile.isSuspended ? "Suspended" : "Active"}
+          </p>
+        )}
         <div className="profile-actions">
           {user?.id === profile.id && (
             <a className="button secondary" href="#/account">
@@ -64,6 +72,29 @@ export default function Profile({ id, user }) {
           </div>
         </div>
       </section>
+      {user?.role === "Admin" && (
+        <section className="panel">
+          <h2>Member items</h2>
+          {!profile.listings?.length ? (
+            <p>No items posted.</p>
+          ) : (
+            profile.listings.map((l) => (
+              <div className="row" key={l.id}>
+                <strong>{l.title}</strong>
+                <span>
+                  {l.isDeleted
+                    ? "Deleted"
+                    : l.isHidden
+                      ? "Hidden"
+                      : !l.isApproved
+                        ? "Pending approval"
+                        : l.status}
+                </span>
+              </div>
+            ))
+          )}
+        </section>
+      )}
       <h2>From the community</h2>
       {profile.reviews.length ? (
         profile.reviews.map((review, i) => (

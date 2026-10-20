@@ -27,7 +27,7 @@ public class ListingsController : BaseController
     public async Task<IActionResult> Browse(string? search, string? category, string? condition,
         decimal? maxPrice, string? sort, bool mine = false, int? page = null, int pageSize = 12)
     {
-        var query = db.Listings.Include(l => l.Seller).AsQueryable();
+        var query = db.Listings.Include(l => l.Seller).Where(l => !l.IsDeleted).AsQueryable();
         if (mine)
         {
             if (User.Identity?.IsAuthenticated != true) return Unauthorized();
@@ -60,6 +60,8 @@ public class ListingsController : BaseController
             l.IsHidden,
             l.SellerId,
             sellerName = l.Seller.Name,
+            sellerRating = db.Reviews.Where(r => r.RevieweeId == l.SellerId).Select(r => (double?)r.Rating).Average(),
+            sellerReviewCount = db.Reviews.Count(r => r.RevieweeId == l.SellerId),
             l.CreatedAt
         }).ToListAsync();
         return page == null ? Ok(items) : Ok(new { items, total, page = currentPage, pageSize });
@@ -69,7 +71,7 @@ public class ListingsController : BaseController
     public async Task<IActionResult> Detail(int id)
     {
         var listing = await db.Listings.Include(l => l.Seller).SingleOrDefaultAsync(l => l.Id == id);
-        if (listing == null) return NotFound();
+        if (listing == null || listing.IsDeleted) return NotFound();
         var owner = User.Identity?.IsAuthenticated == true && (CurrentUserId == listing.SellerId || IsAdmin);
         if ((!listing.IsApproved || listing.IsHidden || listing.Seller.IsSuspended) && !owner) return NotFound();
         return Ok(new
@@ -109,7 +111,7 @@ public class ListingsController : BaseController
         // A short DB transaction keeps an edit from racing an accepted offer.
         await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         var listing = await db.Listings.FindAsync(id);
-        if (listing == null) return NotFound();
+        if (listing == null || listing.IsDeleted) return NotFound();
         if (listing.SellerId != CurrentUserId) return Forbid();
         if (listing.Status != "Available" || await db.Deals.AnyAsync(d => d.ListingId == id && d.Status == "Pending"))
             return BadRequest(new { error = "Resolve pending offers before editing. Reserved or sold items cannot be edited." });
@@ -120,6 +122,23 @@ public class ListingsController : BaseController
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return Ok(new { message = "Updated and sent for approval." });
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        var listing = await db.Listings.FindAsync(id);
+        if (listing == null) return NotFound();
+        if (listing.SellerId != CurrentUserId) return Forbid();
+        if (listing.IsDeleted) return Ok(new { message = "Item deleted." });
+        if (await db.Deals.AnyAsync(d => d.ListingId == id && (d.Status == "Pending" || d.Status == "Accepted" || d.Status == "Scheduled")))
+            return BadRequest(new { error = "Resolve or cancel active trades before deleting this item." });
+        listing.IsDeleted = true;
+        listing.IsHidden = true;
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return Ok(new { message = "Item deleted. Trade history is preserved." });
     }
 
     [HttpPost("upload"), RequestSizeLimit(3_000_000)]

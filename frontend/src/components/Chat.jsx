@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, dateTime } from "../api";
 import { ActionForm, Icon, Loading, Notice } from "./UI";
 
-export default function Chat({ dealId, user, otherName }) {
+export default function Chat({ dealId, listingId, user, otherName }) {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -63,6 +63,7 @@ export default function Chat({ dealId, user, otherName }) {
         <div>
           <h3>{otherName || "Your conversation"}</h3>
           <small>Private trade conversation</small>
+          {listingId && <a className="chat-item-link" href={`#/item/${listingId}`}>View item →</a>}
         </div>
       </div>
       <Notice>{error}</Notice>

@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<ModerationMessage> ModerationMessages => Set<ModerationMessage>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {

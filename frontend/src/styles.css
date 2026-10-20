@@ -992,9 +992,18 @@ input::file-selector-button {
   gap: 26px;
   align-items: start;
 }
-.trade-list {
+.trade-sidebar {
   position: sticky;
   top: 24px;
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  min-height: 0;
+}
+.trade-sidebar > .trade-filters { flex: 0 0 auto; flex-wrap: wrap; }
+.trade-list {
+  min-height: 0;
+  align-content: start;
   display: grid;
   gap: 10px;
   max-height: 80vh;
@@ -1562,6 +1571,7 @@ footer a:hover {
   .trades-layout {
     grid-template-columns: 1fr;
   }
+  .trade-sidebar { position: static; max-height: none; }
   .trade-list {
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2384,3 +2394,18 @@ select option {
     gap: 12px;
   }
 }
+
+/* Moderation, ownership and trust details */
+.owner-rating { margin-left: auto; white-space: nowrap; font-size: .78rem; font-weight: 600; color: #846015; }
+.card-footer { gap: 10px; justify-content: space-between; }
+.card-footer > a:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.delete-item { margin-top: 12px; }
+.button.danger { background: #a42b36; color: white; }
+.moderation-message p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moderation-message .row { flex-wrap: wrap; gap: 8px; }
+.confirm-box p { white-space: normal; }
+
+.text-button.report-link { color: #b42332; font-weight: 600; }
+.text-button.report-link:hover, .text-button.report-link:focus-visible { color: #861a26; text-decoration: underline; }
+.chat-item-link { display: block; width: fit-content; margin-top: 6px; font-size: .85rem; font-weight: 650; color: var(--primary, #254f41); }
+.chat-item-link:hover { text-decoration: underline; }
