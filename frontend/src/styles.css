@@ -28,6 +28,9 @@ a {
   color: inherit;
   text-decoration: none;
 }
+a.button.secondary.small {
+  margin-right: 8px;
+}
 button,
 input,
 select,
@@ -1000,7 +1003,10 @@ input::file-selector-button {
   max-height: 80vh;
   min-height: 0;
 }
-.trade-sidebar > .trade-filters { flex: 0 0 auto; flex-wrap: wrap; }
+.trade-sidebar > .trade-filters {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
 .trade-list {
   min-height: 0;
   align-content: start;
@@ -1571,7 +1577,10 @@ footer a:hover {
   .trades-layout {
     grid-template-columns: 1fr;
   }
-  .trade-sidebar { position: static; max-height: none; }
+  .trade-sidebar {
+    position: static;
+    max-height: none;
+  }
   .trade-list {
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2396,30 +2405,127 @@ select option {
 }
 
 /* Moderation, ownership and trust details */
-.owner-rating { margin-left: auto; white-space: nowrap; font-size: .78rem; font-weight: 600; color: #846015; }
-.card-footer { gap: 10px; justify-content: space-between; }
-.card-footer > a:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.delete-item { margin-top: 12px; }
-.button.danger { background: #a42b36; color: white; }
-.moderation-message p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.moderation-message .row { flex-wrap: wrap; gap: 8px; }
-.confirm-box p { white-space: normal; }
+.owner-rating {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #846015;
+}
+.card-footer {
+  gap: 10px;
+  justify-content: space-between;
+}
+.card-footer > a:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.delete-item {
+  margin-top: 12px;
+}
+.button.danger {
+  background: #a42b36;
+  color: white;
+}
+.moderation-message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.moderation-message .row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.confirm-box p {
+  white-space: normal;
+}
 
-.text-button.report-link { color: #b42332; font-weight: 600; }
-.text-button.report-link:hover, .text-button.report-link:focus-visible { color: #861a26; text-decoration: underline; }
-.chat-item-link { display: block; width: fit-content; margin-top: 6px; font-size: .85rem; font-weight: 650; color: var(--primary, #254f41); }
-.chat-item-link:hover { text-decoration: underline; }
+.text-button.report-link {
+  color: #b42332;
+  font-weight: 600;
+}
+.text-button.report-link:hover,
+.text-button.report-link:focus-visible {
+  color: #861a26;
+  text-decoration: underline;
+}
+.chat-item-link {
+  display: block;
+  width: fit-content;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--primary, #254f41);
+}
+.chat-item-link:hover {
+  text-decoration: underline;
+}
 
 /* A single selected moderation conversation, matching the trade workspace. */
-.inbox-search { display: grid; gap: 8px; margin-bottom: 14px; font-size: .8rem; font-weight: 600; }
-.inbox-thread { width: 100%; text-align: left; display: grid; gap: 6px; border: 1px solid var(--border); border-radius: 13px; padding: 16px; background: white; color: var(--text, #23423a); cursor: pointer; min-width: 0; }
-.inbox-thread.selected { background: #eef5e9; border-color: #7ea58c; box-shadow: inset 3px 0 var(--green); }
-.inbox-thread strong { font-size: .95rem; overflow-wrap: anywhere; }
-.inbox-thread span, .inbox-thread small { font-size: .76rem; color: #587067; }
-.inbox-thread p { font-size: .8rem; margin: 2px 0; color: #587067; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.inbox-chat { min-width: 0; margin: 0; }
-.inbox-chat .messages { height: min(52vh, 520px); min-height: 240px; }
-.inbox-chat .message p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.inbox-chat .chat-heading { overflow-wrap: anywhere; }
-.inbox-thread:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
-@media (max-width: 850px) { .inbox-sidebar .trade-list { grid-template-columns: 1fr; max-height: 260px; } }
+.inbox-search {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.inbox-thread {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 16px;
+  background: white;
+  color: var(--text, #23423a);
+  cursor: pointer;
+  min-width: 0;
+}
+.inbox-thread.selected {
+  background: #eef5e9;
+  border-color: #7ea58c;
+  box-shadow: inset 3px 0 var(--green);
+}
+.inbox-thread strong {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.inbox-thread span,
+.inbox-thread small {
+  font-size: 0.76rem;
+  color: #587067;
+}
+.inbox-thread p {
+  font-size: 0.8rem;
+  margin: 2px 0;
+  color: #587067;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.inbox-chat {
+  min-width: 0;
+  margin: 0;
+}
+.inbox-chat .messages {
+  height: min(52vh, 520px);
+  min-height: 240px;
+}
+.inbox-chat .message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.inbox-chat .chat-heading {
+  overflow-wrap: anywhere;
+}
+.inbox-thread:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+@media (max-width: 850px) {
+  .inbox-sidebar .trade-list {
+    grid-template-columns: 1fr;
+    max-height: 260px;
+  }
+}
